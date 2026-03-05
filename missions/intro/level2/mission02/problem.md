@@ -126,21 +126,20 @@
 
 ### 제출물 구조
 
-`mac_analyzer.py` 파일 1개를 zip으로 묶어 제출하세요.
+`mac_analyzer.py` 파일을 제출하세요.
 
 ```
-submission.zip
-└── mac_analyzer.py
-    ├── load_data()
-    ├── mac()
-    ├── normalize_labels()
-    ├── is_close()
-    ├── find_best_match()
-    ├── measure_mac_time()
-    ├── analyze_complexity()
-    ├── diagnose_failure()
-    ├── get_mac_explanation()
-    ├── get_normalization_reason()
-    ├── get_epsilon_reason()
-    └── main()
+mac_analyzer.py
+├── load_data()
+├── mac()
+├── normalize_labels()
+├── is_close()
+├── find_best_match()
+├── measure_mac_time()
+├── analyze_complexity()
+├── diagnose_failure()
+├── get_mac_explanation()
+├── get_normalization_reason()
+├── get_epsilon_reason()
+└── main()
 ```

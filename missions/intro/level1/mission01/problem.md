@@ -67,15 +67,14 @@
 
 ### 제출물 구조
 
-`mac_scorer.py` 파일 1개를 zip으로 묶어 제출하세요.
+`mac_scorer.py` 파일을 제출하세요.
 
 ```
-submission.zip
-└── mac_scorer.py
-    ├── load_data()
-    ├── mac()
-    ├── normalize_labels()
-    ├── is_close()
-    ├── find_best_match()
-    └── main()
+mac_scorer.py
+├── load_data()
+├── mac()
+├── normalize_labels()
+├── is_close()
+├── find_best_match()
+└── main()
 ```
