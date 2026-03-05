@@ -1,5 +1,16 @@
 ## 문항 1 정답지 — MAC 연산 기반 패턴 매칭
 
+### 데이터 타입
+
+| 항목 | 타입 | 설명 |
+|------|------|------|
+| `patterns` | `dict[str, list[list[int]]]` | 키: `img_01`~`img_03`, 값: 3×3 정수 배열 |
+| `filters` | `dict[str, list[list[int]]]` | 키: `cross`, `block`, `line`, 값: 3×3 정수 배열 |
+| `labels` | `dict[str, str]` | 키: 대소문자 불규칙 (`IMG_01`, `Img_02`, `img_03`), 값: 라벨 문자열 |
+| MAC 결과 | `int` 또는 `float` | 두 배열의 요소별 곱의 합 |
+| `scores` | `dict[str, dict[str, int]]` | 패턴별 필터 MAC 점수 |
+| `best_matches` | `dict[str, str]` | 패턴별 최적 필터 이름 |
+
 ### 정답 코드
 
 ```python
@@ -78,7 +89,7 @@ def main(data_path):
 | 9 | 전체 파이프라인 결과 | 10점 | import 자동 |
 
 - Pass 기준: 총 100점 중 100점 (9개 전체 정답)
-- AI 트랩: 없음 (난이도 1, 기초 이해도 확인)
+- AI 트랩: labels 키 대소문자 불규칙 (IMG_01, Img_02, img_03)
 
 ### 학습 목표 매핑
 

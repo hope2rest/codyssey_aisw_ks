@@ -6,34 +6,34 @@
 
 #### data.json 구조
 
-| 키 | 내용 |
-|----|------|
-| `patterns` | 판별 대상 이미지 3개 (3×3 정수 배열) |
-| `filters` | 비교 기준 필터 3개 (3×3 정수 배열) |
-| `labels` | 패턴별 정답 라벨 (키 대소문자가 불규칙: `IMG_01`, `Img_02`, `img_03`) |
+| 키 | 타입 | 내용 |
+|----|------|------|
+| `patterns` | `dict[str, list[list[int]]]` | 판별 대상 이미지 3개 (`img_01`, `img_02`, `img_03`), 각 3×3 정수 배열 |
+| `filters` | `dict[str, list[list[int]]]` | 비교 기준 필터 3개 (`cross`, `block`, `line`), 각 3×3 정수 배열 |
+| `labels` | `dict[str, str]` | 패턴별 정답 라벨 |
 
 ---
 
 ### [ 요구사항 ]
 
-1. **`load_data(filepath)` → dict를 구현하시오.**
+1. **`load_data(filepath: str) → dict`를 구현하시오.**
    - JSON 파일을 읽어 딕셔너리로 반환하시오.
 
-2. **`mac(a, b)` → int 또는 float를 구현하시오.**
+2. **`mac(a: list[list], b: list[list]) → int | float`를 구현하시오.**
    - 두 개의 2D 리스트에 대해 MAC 연산을 수행하시오.
    - 같은 위치의 값을 곱한 뒤 전부 더하시오.
 
-3. **`normalize_labels(labels)` → dict를 구현하시오.**
+3. **`normalize_labels(labels: dict) → dict`를 구현하시오.**
    - 딕셔너리의 키를 모두 소문자로 변환한 새 딕셔너리를 반환하시오.
    - 값은 변경하지 않는다.
 
-4. **`is_close(a, b, epsilon=1e-6)` → bool를 구현하시오.**
+4. **`is_close(a: float, b: float, epsilon: float = 1e-6) → bool`를 구현하시오.**
    - 두 수의 차이가 epsilon 미만이면 `True`를 반환하시오.
 
-5. **`find_best_match(pattern, filters)` → str를 구현하시오.**
+5. **`find_best_match(pattern: list[list], filters: dict) → str`를 구현하시오.**
    - 패턴과 각 필터의 MAC 점수를 계산하여, 가장 높은 점수를 받은 필터 이름을 반환하시오.
 
-6. **`main(data_path)` → dict를 구현하시오.**
+6. **`main(data_path: str) → dict`를 구현하시오.**
    - 위 함수들을 조합하여 전체 파이프라인을 실행하시오.
 
 ---
@@ -51,19 +51,14 @@
 ```python
 {
     "scores": {
-        "img_01": {"cross": 5, "block": 2, "line": 1},
-        "img_02": {"cross": 2, "block": 4, "line": 2},
-        "img_03": {"cross": 1, "block": 2, "line": 3}
+        "img_01": {"cross": 정수, "block": 정수, "line": 정수},
+        "img_02": {"cross": 정수, "block": 정수, "line": 정수},
+        "img_03": {"cross": 정수, "block": 정수, "line": 정수}
     },
     "best_matches": {
-        "img_01": "cross",
-        "img_02": "block",
-        "img_03": "line"
-    },
-    "labels": {
-        "img_01": "cross_pattern",
-        "img_02": "block_pattern",
-        "img_03": "line_pattern"
+        "img_01": "필터명",
+        "img_02": "필터명",
+        "img_03": "필터명"
     }
 }
 ```
