@@ -109,6 +109,18 @@
 }
 ```
 
+#### 결과 구조 설명
+
+| 키 | 타입 | 설명 |
+|----|------|------|
+| `predictions` | `dict[str, int]` | 각 이미지에 대한 예측 박스 개수. 키는 이미지 이름(예: `"easy_01"`), 값은 정수. 실제 이미지 파일이 존재하는 항목만 포함하시오. |
+| `metrics` | `dict[str, dict]` | `easy`, `medium`, `hard` 3개 카테고리 각각에 대한 성능 지표. |
+| `metrics.{category}.mae` | `float` | 해당 카테고리의 Mean Absolute Error. `abs(예측 - 정답)`의 평균값. |
+| `metrics.{category}.accuracy` | `float` | 해당 카테고리에서 정확히 맞춘 이미지 비율. `0.0` ~ `1.0` 범위. |
+| `worst_case_image` | `str` | hard 카테고리에서 예측 오차가 가장 큰 이미지 이름. (예: `"hard_03"`) |
+| `failure_reasons` | `list[str]` | 규칙 기반 방식이 hard 카테고리에서 실패하는 기술적 원인. 3개 이상, 각 항목 한국어 20자 이상. |
+| `why_learning_based` | `str` | 학습 기반 접근법(CNN 등)이 필요한 이유. 한국어 30~200자. |
+
 ---
 
 ### [ 제출 방식 ]
