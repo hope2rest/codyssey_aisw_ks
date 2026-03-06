@@ -1,4 +1,5 @@
 """미션별 conftest — submission_dir, data_path fixture 제공"""
+import json
 import os
 import zipfile
 
@@ -6,6 +7,26 @@ import pytest
 
 _MISSION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DEFAULT_SUBMISSION = os.path.join(_MISSION_DIR, "sample_submission")
+
+_DATA = {
+    "patterns": {
+        "img_01": [[1, 0, 1], [0, 1, 0], [1, 0, 1]],
+        "img_02": [[1, 1, 0], [1, 1, 0], [0, 0, 0]],
+        "img_03": [[0, 0, 0], [1, 1, 1], [0, 0, 0]],
+        "img_04": [[0.5, 0.5, 0], [0.5, 0.5, 0], [0, 0, 0]]
+    },
+    "filters": {
+        "cross": [[1, 0, 1], [0, 1, 0], [1, 0, 1]],
+        "block": [[1, 1, 0], [1, 1, 0], [0, 0, 0]],
+        "line":  [[0, 0, 0], [1, 1, 1], [0, 0, 0]]
+    },
+    "labels": {
+        "IMG_01": "cross_pattern",
+        "Img_02": "block_pattern",
+        "img_03": "line_pattern",
+        "IMG_04": "block_pattern"
+    }
+}
 
 
 @pytest.fixture(scope="session")
@@ -29,8 +50,10 @@ def submission_dir(request, tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def data_path():
-    """data/data.json 절대 경로 제공"""
-    path = os.path.join(_MISSION_DIR, "data", "data.json")
-    assert os.path.isfile(path), f"data.json 파일 없음: {path}"
+def data_path(tmp_path_factory):
+    """데이터를 임시 파일로 생성하여 경로 제공"""
+    tmp_dir = tmp_path_factory.mktemp("data")
+    path = str(tmp_dir / "data.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(_DATA, f, ensure_ascii=False)
     return path
