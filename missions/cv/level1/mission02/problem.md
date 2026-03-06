@@ -104,5 +104,5 @@
 - 빈 줄은 문서로 포함하지 않습니다.
 
 ### 제출 방식
-- `q2_solution.py`와 `result_q2.json` 두 파일을 제출합니다.
+- `q2_solution.py`, `result_q2.json` 총 2개 파일을 zip으로 묶어 제출합니다.
 - `template/q2_solution.py`의 `# TODO` 부분을 채우세요.
