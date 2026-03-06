@@ -3,14 +3,24 @@
 ### 문제
 
 NumPy만으로 Tensor 기반 자동 미분(Autograd) 엔진을 구현하고, 신경망 레이어, 학습 루프, Bias/Variance 진단까지 포함하는 미니 딥러닝 프레임워크를 구축하세요.
-데이터는 `data/xor_data.npz` (XOR 4샘플)과 `data/regression_data.npz` (50샘플, y=2*x1+3*x2+noise)에 저장되어 있습니다.
 
-### 데이터 구조
+### 제공 데이터
+
+```
+data/
+├── xor_data.npz           # XOR 논리 연산 데이터 (4샘플)
+└── regression_data.npz    # 선형 회귀 데이터 (50샘플, y=2*x1+3*x2+noise)
+```
+
+- `xor_data.npz`: XOR 문제 학습용 데이터입니다. `X`(4x2)는 입력, `y`(4x1)는 XOR 출력입니다.
+- `regression_data.npz`: 선형 회귀 학습/테스트 데이터입니다. `X_train`(40x2), `y_train`(40x1), `X_test`(10x2), `y_test`(10x1)로 구성됩니다.
+
+### 데이터 키 구조
 
 | 파일 | 키 | 설명 |
 |------|-----|------|
-| `data/xor_data.npz` | `X` (4x2), `y` (4x1) | XOR 논리 연산 데이터 |
-| `data/regression_data.npz` | `X_train` (40x2), `y_train` (40x1), `X_test` (10x2), `y_test` (10x1) | 선형 회귀 데이터 |
+| `xor_data.npz` | `X` (4x2), `y` (4x1) | XOR 논리 연산 데이터 |
+| `regression_data.npz` | `X_train` (40x2), `y_train` (40x1), `X_test` (10x2), `y_test` (10x1) | 선형 회귀 데이터 |
 
 ### 프로젝트 구조
 

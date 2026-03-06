@@ -3,18 +3,23 @@
 ### 문제
 
 20개의 한국어 기술 문서에 대해 TF-IDF 기반 문서 검색을 구현하고, 30개의 고객 리뷰에 대해 규칙 기반 감성 분석을 수행하는 프로그램을 구현하세요.
-문서 데이터는 `data/documents.txt`, 불용어는 `data/stopwords.txt`, 검색 쿼리는 `data/queries.txt`에 저장되어 있습니다.
-리뷰 데이터는 `data/reviews.txt`(탭 구분, 텍스트\t레이블), 감성 사전은 `data/sentiment_dict.json`에 저장되어 있습니다.
 
-### 입력 파일 구조
+### 제공 데이터
 
-| 파일 | 설명 |
-|------|------|
-| `data/documents.txt` | 한 줄에 하나의 문서 (빈 줄 제외 시 20개) |
-| `data/stopwords.txt` | 한 줄에 하나의 불용어 |
-| `data/queries.txt` | 한 줄에 하나의 검색 쿼리 (총 5개) |
-| `data/reviews.txt` | `텍스트\t레이블` (1=긍정, 0=부정, 총 30개) |
-| `data/sentiment_dict.json` | positive, negative, negation, intensifier 사전 |
+```
+data/
+├── documents.txt          # 한국어 기술 문서 (한 줄에 하나, 20개)
+├── stopwords.txt          # 불용어 목록 (한 줄에 하나)
+├── queries.txt            # 검색 쿼리 (한 줄에 하나, 5개)
+├── reviews.txt            # 고객 리뷰 (텍스트\t레이블, 30개)
+└── sentiment_dict.json    # 감성 사전 (positive/negative/negation/intensifier)
+```
+
+- `documents.txt`: TF-IDF 검색 대상이 되는 한국어 기술 문서 코퍼스입니다. 빈 줄은 문서로 포함하지 않습니다.
+- `stopwords.txt`: 전처리 시 제거할 불용어 목록입니다.
+- `queries.txt`: 문서 검색에 사용할 5개의 검색 쿼리입니다.
+- `reviews.txt`: 탭 구분(`텍스트\t레이블`)으로 구성된 30개 리뷰입니다. 레이블은 1(긍정) 또는 0(부정)입니다.
+- `sentiment_dict.json`: 긍정/부정 단어, 부정어, 강조어를 포함한 감성 분석 사전입니다.
 
 ### 구현 요구사항
 

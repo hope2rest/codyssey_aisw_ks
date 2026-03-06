@@ -3,7 +3,26 @@
 ### 문제
 
 제공되는 이미지에서 박스(Box)의 개수를 카운팅하는 규칙 기반 파이프라인을 4개의 모듈 파일로 나누어 구현하세요.
-이미지(easy/medium/hard 각 5장, 총 15장)는 `data/images/`에, 정답 박스 개수는 `data/labels.json`에 저장되어 있습니다.
+
+### 제공 데이터
+
+```
+data/
+├── labels.json            # 이미지별 정답 박스 개수 {"easy_01": 3, ...}
+└── images/                # 640x480 RGB PNG 이미지 (총 15장)
+    ├── easy_01.png        # easy 카테고리 (5장) — 밝은 배경, 박스 간 간격 충분
+    ├── easy_02.png
+    ├── ...
+    ├── medium_01.png      # medium 카테고리 (5장) — 박스 일부 겹침, 그림자 존재
+    ├── medium_02.png
+    ├── ...
+    ├── hard_01.png        # hard 카테고리 (5장) — 적재 형태, 불규칙 다각형, 크기 편차
+    ├── hard_02.png
+    └── ...
+```
+
+- `labels.json`: `{"easy_01": 3, "easy_02": 5, ...}` 형태의 이미지별 정답 박스 개수입니다.
+- `images/`: easy/medium/hard 각 5장, 총 15장의 640x480 RGB PNG 이미지입니다. 난이도에 따라 박스 배치와 겹침 정도가 달라집니다.
 
 ### 프로젝트 구조
 
@@ -13,21 +32,6 @@
 | `counter.py` | 박스 카운팅 및 증강 앙상블 | `count_boxes()`, `ensemble_count()`, `count_boxes_augmented()`, `extract_bounding_boxes()` |
 | `metrics.py` | 정량적 성능 지표, 방법 비교 | `compute_metrics()`, `find_worst_case()`, `compare_methods()` |
 | `main.py` | 전체 파이프라인 실행 | `main()` |
-
-### 입력 데이터
-
-| 파일/폴더 | 타입 | 설명 |
-|-----------|------|------|
-| `data/images/` | PNG (640x480 RGB) | `easy_01.png` ~ `easy_05.png`, `medium_01.png` ~ `medium_05.png`, `hard_01.png` ~ `hard_05.png` |
-| `data/labels.json` | `dict[str, int]` | `{"easy_01": 3, "easy_02": 5, ...}` 형태 |
-
-이미지 카테고리:
-
-| 카테고리 | 장수 | 특징 |
-|----------|------|------|
-| `easy` | 5장 | 밝은 배경, 박스 간 간격 충분, 균일한 간격 |
-| `medium` | 5장 | 박스 일부 겹침, 약간의 그림자 존재 |
-| `hard` | 5장 | 적재(Stacked) 형태 포함, 불규칙한 다각형, 크기 편차 큰 |
 
 ### 구현 요구사항
 
