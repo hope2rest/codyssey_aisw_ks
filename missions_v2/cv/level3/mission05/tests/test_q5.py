@@ -1,8 +1,9 @@
 """
-Q5 금융 리스크 예측 + 모델 해석 — pytest 검증 (18개 테스트, 정량적 검증만)
+Q5 금융 리스크 예측 서비스 — pytest 검증 (28개 테스트)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
-제출물: preprocessor.py, model.py, interpreter.py, main.py, result_q5.json (5파일)
+제출물: core/ 폴더 구조 (preprocessor.py, model.py, interpreter.py, predictor.py, main.py)
+        + dashboard/, charts/, output/result_q5.json, output/charts/
 """
 import ast
 import importlib
@@ -29,17 +30,17 @@ def _configure(submission_dir):
 
 
 def _import_module(module_name):
-    src_dir = os.path.join(_SUBMISSION_DIR, "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+    core_dir = os.path.join(_SUBMISSION_DIR, "core")
+    if core_dir not in sys.path:
+        sys.path.insert(0, core_dir)
     if module_name in sys.modules:
         del sys.modules[module_name]
     return importlib.import_module(module_name)
 
 
-def _parse_ast(filename):
-    path = os.path.join(_SUBMISSION_DIR, "src", filename)
-    assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
+def _parse_ast(filename, subdir="core"):
+    path = os.path.join(_SUBMISSION_DIR, subdir, filename)
+    assert os.path.isfile(path), f"{subdir}/{filename} 파일 없음: {path}"
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()
     return ast.parse(source, filename=path), source
@@ -388,3 +389,121 @@ class TestResult:
             assert "risk_probability" in p, "risk_probability 키 없음"
             assert "risk_level" in p, "risk_level 키 없음"
             assert p["risk_level"] in ("안전", "주의", "위험"), f"유효하지 않은 등급: {p['risk_level']}"
+
+
+# ========================================================================
+# TestDashboardStructure — 대시보드 폴더 구조 검증
+# ========================================================================
+
+class TestDashboardStructure:
+    def test_dashboard_folder_exists(self):
+        """dashboard/ 폴더 존재 확인"""
+        dashboard_dir = os.path.join(_SUBMISSION_DIR, "dashboard")
+        assert os.path.isdir(dashboard_dir), f"dashboard/ 폴더 없음: {dashboard_dir}"
+
+    def test_charts_folder_exists(self):
+        """charts/ 폴더 존재 확인"""
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        assert os.path.isdir(charts_dir), f"charts/ 폴더 없음: {charts_dir}"
+
+    def test_dashboard_app_exists(self):
+        """dashboard/app.py 존재 확인"""
+        app_path = os.path.join(_SUBMISSION_DIR, "dashboard", "app.py")
+        assert os.path.isfile(app_path), f"dashboard/app.py 없음: {app_path}"
+
+    def test_dashboard_pages_exist(self):
+        """dashboard/pages/ 필수 파일 존재 확인"""
+        pages_dir = os.path.join(_SUBMISSION_DIR, "dashboard", "pages")
+        assert os.path.isdir(pages_dir), f"dashboard/pages/ 폴더 없음"
+        for page in ["overview.py", "prediction.py", "analysis.py", "customer.py"]:
+            path = os.path.join(pages_dir, page)
+            assert os.path.isfile(path), f"dashboard/pages/{page} 없음"
+
+    def test_dashboard_components_exist(self):
+        """dashboard/components/ 필수 파일 존재 확인"""
+        comp_dir = os.path.join(_SUBMISSION_DIR, "dashboard", "components")
+        assert os.path.isdir(comp_dir), f"dashboard/components/ 폴더 없음"
+        for comp in ["input_form.py", "risk_gauge.py", "chart_builder.py"]:
+            path = os.path.join(comp_dir, comp)
+            assert os.path.isfile(path), f"dashboard/components/{comp} 없음"
+
+    def test_charts_modules_exist(self):
+        """charts/ 필수 모듈 존재 확인"""
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        for module in ["risk_charts.py", "feature_charts.py", "pca_charts.py", "cluster_charts.py"]:
+            path = os.path.join(charts_dir, module)
+            assert os.path.isfile(path), f"charts/{module} 없음"
+
+
+# ========================================================================
+# TestCharts — 차트 생성 기능 검증
+# ========================================================================
+
+class TestCharts:
+    def _import_chart_module(self, module_name):
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        if charts_dir not in sys.path:
+            sys.path.insert(0, charts_dir)
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        return importlib.import_module(module_name)
+
+    def test_risk_charts_functions(self):
+        """risk_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("risk_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_risk_distribution" in func_names, "save_risk_distribution 함수 없음"
+        assert "save_model_comparison" in func_names, "save_model_comparison 함수 없음"
+
+    def test_feature_charts_functions(self):
+        """feature_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("feature_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_feature_importance" in func_names, "save_feature_importance 함수 없음"
+
+    def test_pca_charts_functions(self):
+        """pca_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("pca_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_pca_scatter" in func_names, "save_pca_scatter 함수 없음"
+        assert "save_pca_variance" in func_names, "save_pca_variance 함수 없음"
+
+    def test_cluster_charts_functions(self):
+        """cluster_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("cluster_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_cluster_scatter" in func_names, "save_cluster_scatter 함수 없음"
+
+    def test_chart_generation(self, tmp_path):
+        """차트 생성 기능 통합 테스트"""
+        risk_mod = self._import_chart_module("risk_charts")
+        feature_mod = self._import_chart_module("feature_charts")
+
+        # 리스크 분포 차트 생성 테스트
+        out1 = str(tmp_path / "risk.png")
+        risk_mod.save_risk_distribution({"안전": 10, "주의": 5, "위험": 5}, out1)
+        assert os.path.isfile(out1), "리스크 분포 차트 생성 실패"
+        assert os.path.getsize(out1) > 0, "리스크 분포 차트 파일이 비어 있음"
+
+        # Feature Importance 차트 생성 테스트
+        out2 = str(tmp_path / "feature.png")
+        importance = [
+            {"feature": "credit_score", "importance": 1.5},
+            {"feature": "debt_ratio", "importance": 1.2},
+            {"feature": "age", "importance": 0.8},
+        ]
+        feature_mod.save_feature_importance(importance, out2)
+        assert os.path.isfile(out2), "Feature Importance 차트 생성 실패"
+        assert os.path.getsize(out2) > 0, "Feature Importance 차트 파일이 비어 있음"

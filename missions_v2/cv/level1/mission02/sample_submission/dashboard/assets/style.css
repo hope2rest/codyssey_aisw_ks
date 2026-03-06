@@ -1,0 +1,4 @@
+/* 도서 검색 및 추천 서비스 대시보드 스타일 */
+.main { padding: 1rem 2rem; }
+h1 { color: #1a237e; }
+.stMetric { background: #f5f5f5; border-radius: 8px; padding: 1rem; }

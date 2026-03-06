@@ -1,9 +1,9 @@
 """
-Q2 도서 검색 및 추천 서비스 — pytest 검증 (17개 테스트)
+Q2 도서 검색 및 추천 서비스 — pytest 검증 (25개 테스트)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
-제출물: src/ 폴더 구조 (search_engine.py, recommender.py, sentiment.py, main.py)
-        + output/result_q2.json
+제출물: core/ 폴더 구조 (search_engine.py, recommender.py, sentiment.py, main.py)
+        + dashboard/, charts/, output/result_q2.json, output/charts/
 """
 import ast
 import importlib
@@ -26,10 +26,10 @@ def _configure(submission_dir):
 
 
 def _import_module(module_name):
-    """src/ 하위 모듈을 import한다."""
-    src_dir = os.path.join(_SUBMISSION_DIR, "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+    """core/ 하위 모듈을 import한다."""
+    core_dir = os.path.join(_SUBMISSION_DIR, "core")
+    if core_dir not in sys.path:
+        sys.path.insert(0, core_dir)
     # Clean up any cached imports
     for key in list(sys.modules.keys()):
         if key == module_name or key.startswith(module_name + "."):
@@ -37,7 +37,7 @@ def _import_module(module_name):
     return importlib.import_module(module_name)
 
 
-def _parse_ast(filename, subdir="src"):
+def _parse_ast(filename, subdir="core"):
     path = os.path.join(_SUBMISSION_DIR, subdir, filename)
     assert os.path.isfile(path), f"{filename} 파일 없음: {path}"
     with open(path, "r", encoding="utf-8") as f:
@@ -53,10 +53,10 @@ class TestStructure:
     def test_required_files(self):
         """필수 파일 존재 확인"""
         required_files = [
-            os.path.join("src", "search_engine.py"),
-            os.path.join("src", "recommender.py"),
-            os.path.join("src", "sentiment.py"),
-            os.path.join("src", "main.py"),
+            os.path.join("core", "search_engine.py"),
+            os.path.join("core", "recommender.py"),
+            os.path.join("core", "sentiment.py"),
+            os.path.join("core", "main.py"),
         ]
         for f in required_files:
             path = os.path.join(_SUBMISSION_DIR, f)
@@ -293,3 +293,114 @@ class TestResult:
             assert "query" in sr and "top3" in sr
             for item in sr["top3"]:
                 assert "doc_index" in item and "similarity" in item and "title" in item
+
+
+# ========================================================================
+# TestDashboardStructure — 대시보드 폴더 구조 검증
+# ========================================================================
+
+class TestDashboardStructure:
+    def test_dashboard_folder_exists(self):
+        """dashboard/ 폴더 존재 확인"""
+        dashboard_dir = os.path.join(_SUBMISSION_DIR, "dashboard")
+        assert os.path.isdir(dashboard_dir), f"dashboard/ 폴더 없음: {dashboard_dir}"
+
+    def test_charts_folder_exists(self):
+        """charts/ 폴더 존재 확인"""
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        assert os.path.isdir(charts_dir), f"charts/ 폴더 없음: {charts_dir}"
+
+    def test_dashboard_app_exists(self):
+        """dashboard/app.py 존재 확인"""
+        app_path = os.path.join(_SUBMISSION_DIR, "dashboard", "app.py")
+        assert os.path.isfile(app_path), f"dashboard/app.py 없음: {app_path}"
+
+    def test_dashboard_pages_exist(self):
+        """dashboard/pages/ 필수 파일 존재 확인"""
+        pages_dir = os.path.join(_SUBMISSION_DIR, "dashboard", "pages")
+        assert os.path.isdir(pages_dir), f"dashboard/pages/ 폴더 없음"
+        for page in ["search.py", "recommend.py", "sentiment.py"]:
+            path = os.path.join(pages_dir, page)
+            assert os.path.isfile(path), f"dashboard/pages/{page} 없음"
+
+    def test_dashboard_components_exist(self):
+        """dashboard/components/ 필수 파일 존재 확인"""
+        comp_dir = os.path.join(_SUBMISSION_DIR, "dashboard", "components")
+        assert os.path.isdir(comp_dir), f"dashboard/components/ 폴더 없음"
+        for comp in ["search_bar.py", "book_card.py", "chart_builder.py"]:
+            path = os.path.join(comp_dir, comp)
+            assert os.path.isfile(path), f"dashboard/components/{comp} 없음"
+
+    def test_charts_modules_exist(self):
+        """charts/ 필수 모듈 존재 확인"""
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        for module in ["search_charts.py", "recommend_charts.py", "sentiment_charts.py"]:
+            path = os.path.join(charts_dir, module)
+            assert os.path.isfile(path), f"charts/{module} 없음"
+
+
+# ========================================================================
+# TestCharts — 차트 생성 기능 검증
+# ========================================================================
+
+class TestCharts:
+    def _import_chart_module(self, module_name):
+        charts_dir = os.path.join(_SUBMISSION_DIR, "charts")
+        if charts_dir not in sys.path:
+            sys.path.insert(0, charts_dir)
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+        return importlib.import_module(module_name)
+
+    def test_search_charts_functions(self):
+        """search_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("search_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_search_results_chart" in func_names, "save_search_results_chart 함수 없음"
+
+    def test_recommend_charts_functions(self):
+        """recommend_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("recommend_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_similarity_heatmap" in func_names, "save_similarity_heatmap 함수 없음"
+        assert "save_recommendation_chart" in func_names, "save_recommendation_chart 함수 없음"
+
+    def test_sentiment_charts_functions(self):
+        """sentiment_charts.py 필수 함수 확인"""
+        tree, _ = _parse_ast("sentiment_charts.py", subdir="charts")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "save_sentiment_distribution" in func_names, "save_sentiment_distribution 함수 없음"
+        assert "save_sentiment_metrics_chart" in func_names, "save_sentiment_metrics_chart 함수 없음"
+
+    def test_chart_generation(self, tmp_path):
+        """차트 생성 기능 통합 테스트"""
+        search_mod = self._import_chart_module("search_charts")
+        sentiment_mod = self._import_chart_module("sentiment_charts")
+
+        # 검색 차트 생성 테스트
+        search_results = [
+            {"query": "테스트", "top3": [
+                {"title": "도서A", "similarity": 0.8, "doc_index": 0},
+                {"title": "도서B", "similarity": 0.5, "doc_index": 1},
+                {"title": "도서C", "similarity": 0.3, "doc_index": 2},
+            ]}
+        ]
+        out = str(tmp_path / "search.png")
+        search_mod.save_search_results_chart(search_results, out)
+        assert os.path.isfile(out), "검색 결과 차트 생성 실패"
+        assert os.path.getsize(out) > 0, "검색 결과 차트 파일이 비어 있음"
+
+        # 감성 분포 차트 생성 테스트
+        out2 = str(tmp_path / "sentiment.png")
+        sentiment_mod.save_sentiment_distribution(25, 15, out2)
+        assert os.path.isfile(out2), "감성 분포 차트 생성 실패"
+        assert os.path.getsize(out2) > 0, "감성 분포 차트 파일이 비어 있음"

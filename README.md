@@ -7,7 +7,7 @@ AI/SW 심화 시험 — pytest 기반 자동 채점 멀티 모듈 프로젝트
 | 항목 | 값 |
 |------|-----|
 | 총 미션 수 | 7개 (CS 2 + CV 5) |
-| 총 테스트 수 | 114개 |
+| 총 테스트 수 | 135개 |
 | 난이도 분포 | Level 1 × 4, Level 2 × 2, Level 3 × 1 |
 | 채점 방식 | pytest 자동 채점 + `--submission-dir` 옵션 |
 
@@ -25,10 +25,10 @@ AI/SW 심화 시험 — pytest 기반 자동 채점 멀티 모듈 프로젝트
 | 문항 | 난이도 | 제목 | 테스트 수 | 배점 |
 |------|--------|------|-----------|------|
 | Q1 | Level 1 | 이커머스 데이터 전처리 및 이상치 탐지 | 16 | 100점 |
-| Q2 | Level 1 | TF-IDF 문서 검색 + 규칙 기반 감성 분석 | 20 | 100점 |
+| Q2 | Level 1 | 도서 검색 및 추천 서비스 | 30 | 100점 |
 | Q3 | Level 2 | 이미지 객체 검출 및 데이터 증강을 통한 정확도 향상 | 14 | 100점 |
 | Q4 | Level 2 | 금융 리스크 예측 모델 고도화 및 예측 시스템 | 18 | 100점 |
-| Q5 | Level 3 | 미니 딥러닝 프레임워크 설계를 통한 성능 검증 | 23 | 100점 |
+| Q5 | Level 3 | 금융 리스크 예측 서비스 | 34 | 100점 |
 
 ## 디렉토리 구조
 
@@ -79,20 +79,23 @@ codyssey_aisw_0306/
         │   │   └── tests/
         │   │       ├── conftest.py
         │   │       └── test_q1.py
-        │   └── mission02/              # CV Q2: TF-IDF 문서 검색 + 감성 분석
+        │   └── mission02/              # CV Q2: 도서 검색 및 추천 서비스
         │       ├── problem.md
         │       ├── solution.md
         │       ├── data/
-        │       │   ├── documents.txt
-        │       │   ├── queries.txt
-        │       │   ├── reviews.txt
-        │       │   ├── sentiment_dict.json
-        │       │   └── stopwords.txt
+        │       │   ├── books.txt, book_metadata.json
+        │       │   ├── stopwords.txt, queries.txt
+        │       │   ├── reviews.txt, sentiment_dict.json
         │       ├── template/
-        │       │   └── q2_solution.py
+        │       │   ├── core/            # search_engine.py, recommender.py, sentiment.py, main.py
+        │       │   ├── dashboard/       # app.py, pages/, components/, assets/
+        │       │   ├── charts/          # search_charts.py, recommend_charts.py, sentiment_charts.py
+        │       │   └── output/          # .gitkeep, charts/.gitkeep
         │       ├── sample_submission/
-        │       │   ├── q2_solution.py
-        │       │   └── result_q2.json
+        │       │   ├── core/            # search_engine.py, recommender.py, sentiment.py, main.py
+        │       │   ├── dashboard/       # app.py, pages/, components/, assets/
+        │       │   ├── charts/          # search_charts.py, recommend_charts.py, sentiment_charts.py
+        │       │   └── output/          # result_q2.json, charts/*.png
         │       └── tests/
         │           ├── conftest.py
         │           └── test_q2.py
@@ -133,24 +136,27 @@ codyssey_aisw_0306/
         │           ├── conftest.py
         │           └── test_q4.py
         └── level3/
-            └── mission05/              # CV Q5: 미니 딥러닝 프레임워크 + 성능 진단
+            └── mission05/              # CV Q5: 금융 리스크 예측 서비스
                 ├── problem.md
                 ├── solution.md
                 ├── data/
-                │   ├── xor_data.npz
-                │   └── regression_data.npz
+                │   ├── loan_data.csv
+                │   ├── new_customers.csv
+                │   └── threshold_config.json
                 ├── template/
-                │   ├── src/            # tensor.py, autograd.py, layers.py, trainer.py, diagnostics.py, main.py
+                │   ├── core/           # preprocessor.py, model.py, interpreter.py, predictor.py, main.py
+                │   ├── dashboard/      # app.py, pages/, components/, assets/
+                │   ├── charts/         # risk_charts.py, feature_charts.py, pca_charts.py, cluster_charts.py
                 │   ├── config/         # config.json
                 │   ├── models/         # model_info.json
-                │   ├── logs/           # training_log.json
-                │   └── output/         # .gitkeep
+                │   └── output/         # .gitkeep, charts/.gitkeep
                 ├── sample_submission/
-                │   ├── src/            # tensor.py, autograd.py, layers.py, trainer.py, diagnostics.py, main.py
+                │   ├── core/           # preprocessor.py, model.py, interpreter.py, predictor.py, main.py
+                │   ├── dashboard/      # app.py, pages/, components/, assets/
+                │   ├── charts/         # risk_charts.py, feature_charts.py, pca_charts.py, cluster_charts.py
                 │   ├── config/         # config.json
                 │   ├── models/         # model_info.json
-                │   ├── logs/           # training_log.json
-                │   └── output/         # result_q5.json
+                │   └── output/         # result_q5.json, charts/*.png
                 └── tests/
                     ├── conftest.py
                     └── test_q5.py
