@@ -87,5 +87,5 @@
 - 표준편차 계산 시 `ddof=0`을 사용합니다.
 
 ### 제출 방식
-- `q1_solution.py`와 `result_q1.json` 두 파일을 제출합니다.
+- `q1_solution.py`, `result_q1.json` 총 2개 파일을 zip으로 묶어 제출합니다.
 - `template/q1_solution.py`의 `# TODO` 부분을 채우세요.
