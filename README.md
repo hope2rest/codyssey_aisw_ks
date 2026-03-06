@@ -10,17 +10,17 @@ AI/SW 심화 시험 — pytest 기반 자동 채점 멀티 모듈 프로젝트
 
 학생은 4개의 Python 모듈과 결과 JSON 파일, 총 5개 파일을 제출합니다.
 
-### Q1. MAC 연산 기반 패턴 매칭 (CS - Level 1)
+### Q1. MAC 연산 기반 패턴 매칭 (CS - Level 1, 20분)
 
-JSON 데이터에서 3x3 패턴과 필터를 읽어 MAC 연산으로 최적 매칭을 찾는 문제입니다.
+JSON 데이터에서 3×3 패턴과 필터를 읽어 MAC 연산으로 최적 매칭을 찾고, 라벨 정규화·epsilon 비교·시간 복잡도 분석·실패 진단까지 수행하는 문제입니다.
 
 학생은 `mac_scorer.py` 1개 파일을 제출합니다.
 
-### Q2. MAC 연산 심화 분석 (CS - Level 2)
+### Q2. 2D 컨볼루션 기반 특징 추출 (CS - Level 2, 40분)
 
-MAC 연산을 기반으로 성능 벤치마크, 시간 복잡도 분석, 실패 원인 진단, 핵심 개념 설명 기능을 추가한 심화 분석 문제입니다.
+5×5 이미지와 3×3 커널을 읽어 2D 컨볼루션으로 특징맵을 추출하고, ReLU 활성화·통계 분석·최강 특징 커널 탐색까지 수행하는 문제입니다.
 
-학생은 `mac_analyzer.py` 1개 파일을 제출합니다.
+학생은 `conv2d_analyzer.py` 1개 파일을 제출합니다.
 
 ## 디렉토리 구조
 
@@ -50,7 +50,7 @@ codyssey_aisw_0306/
     │   └── tests/
     │       ├── conftest.py         # submission_dir fixture
     │       └── test_q1_cv.py       # 22개 테스트
-    ├── cs/level1/mission01/        # Q1 MAC 스코어러
+    ├── cs/level1/mission01/        # Q1 MAC 스코어러 (20분)
     │   ├── problem.md
     │   ├── solution.md
     │   ├── data/
@@ -61,19 +61,19 @@ codyssey_aisw_0306/
     │   │   └── mac_scorer.py
     │   └── tests/
     │       ├── conftest.py
-    │       └── test_mac_scorer.py  # 9개 테스트
-    └── cs/level2/mission02/        # Q2 MAC 심화 분석
+    │       └── test_mac_scorer.py  # 11개 테스트
+    └── cs/level2/mission02/        # Q2 2D 컨볼루션 특징 추출 (40분)
         ├── problem.md
         ├── solution.md
         ├── data/
         │   └── data.json
         ├── template/
-        │   └── mac_analyzer.py
+        │   └── conv2d_analyzer.py
         ├── sample_submission/
-        │   └── mac_analyzer.py
+        │   └── conv2d_analyzer.py
         └── tests/
             ├── conftest.py
-            └── test_mac_analyzer.py # 14개 테스트
+            └── test_conv2d_analyzer.py # 12개 테스트
 ```
 
 ## 제출 파일 설명
@@ -88,12 +88,12 @@ codyssey_aisw_0306/
 | `main.py` | 전체 파이프라인 실행 (카운팅 → 증강 → 비교 → 주간 일지 → JSON 저장) |
 | `result_q1.json` | 예측, 증강 예측, 바운딩 박스, 메트릭, 방법 비교, 주간 보고서, 한계 분석 |
 
-### CS — MAC 연산
+### CS — MAC 연산 + 2D 컨볼루션
 
 | 파일 | 역할 |
 |------|------|
-| `mac_scorer.py` | MAC 연산 기반 패턴 매칭 (Level 1) |
-| `mac_analyzer.py` | MAC 연산 심화 분석 — 벤치마크, 복잡도 분석, 실패 진단, 개념 설명 (Level 2) |
+| `mac_scorer.py` | MAC 연산 기반 패턴 매칭, 라벨 정규화, epsilon 비교, 시간 복잡도 분석, 실패 진단 (Level 1) |
+| `conv2d_analyzer.py` | 2D 컨볼루션 기반 특징 추출, 제로 패딩, ReLU 활성화, 통계 분석, 최강 특징 탐색 (Level 2) |
 
 ## 테스트 구성
 
@@ -124,25 +124,11 @@ codyssey_aisw_0306/
 | 결과 검증 | `test_failure_reasons` | 실패 원인 3개 이상, 한국어, 20자+ |
 | 결과 검증 | `test_why_learning_based` | 학습 기반 필요성 30~200자, 한국어 |
 
-### CS - Level 1 (9개)
+### CS - Level 1: MAC 스코어러 (11개)
 
 | 분류 | 테스트 | 내용 |
 |------|--------|------|
-| 구조 검증 | `test_functions_exist` | 필수 함수 6개 정의 확인 |
-| 구조 검증 | `test_no_external_lib` | json 외 외부 라이브러리 미사용 |
-| 기능 검증 | `test_mac_basic` | 정수 MAC 연산 |
-| 기능 검증 | `test_find_best_match` | 최적 필터 매칭 |
-| 기능 검증 | `test_normalize_labels` | 라벨 키 소문자 정규화 |
-| 기능 검증 | `test_is_close` | epsilon 기반 비교 |
-| 결과 검증 | `test_main_scores` | 전체 점수 계산 결과 |
-| 결과 검증 | `test_main_best_matches` | 최적 매칭 결과 |
-| 결과 검증 | `test_main_labels` | 라벨 정규화 결과 |
-
-### CS - Level 2 (14개)
-
-| 분류 | 테스트 | 내용 |
-|------|--------|------|
-| 구조 검증 | `test_functions_exist` | 필수 함수 12개 정의 확인 |
+| 구조 검증 | `test_functions_exist` | 필수 함수 9개 정의 확인 |
 | 구조 검증 | `test_no_external_lib` | json, time 외 외부 라이브러리 미사용 |
 | 기능 검증 | `test_mac_basic` | 정수 MAC 연산 |
 | 기능 검증 | `test_mac_floats` | 부동소수점 MAC 연산 |
@@ -152,10 +138,24 @@ codyssey_aisw_0306/
 | 기능 검증 | `test_measure_mac_time` | MAC 연산 시간 측정 |
 | 기능 검증 | `test_analyze_complexity` | 시간 복잡도 분석 구조 |
 | 기능 검증 | `test_diagnose_failure` | 실패 원인 3가지 분류 |
-| 기능 검증 | `test_mac_explanation` | MAC 설명 (한국어, 50자+) |
-| 기능 검증 | `test_normalization_reason` | 정규화 필요성 (한국어, 30자+) |
-| 기능 검증 | `test_epsilon_reason` | epsilon 비교 필요성 (한국어, 30자+) |
 | 결과 검증 | `test_main_result` | 전체 파이프라인 결과 |
+
+### CS - Level 2: 2D 컨볼루션 특징 추출 (12개)
+
+| 분류 | 테스트 | 내용 |
+|------|--------|------|
+| 구조 검증 | `test_functions_exist` | 필수 함수 9개 정의 확인 |
+| 구조 검증 | `test_no_external_lib` | json 외 외부 라이브러리 미사용 |
+| 기능 검증 | `test_pad_matrix` | 제로 패딩 적용 |
+| 기능 검증 | `test_conv2d_basic` | 기본 컨볼루션 연산 |
+| 기능 검증 | `test_conv2d_output_size` | 컨볼루션 출력 크기 |
+| 기능 검증 | `test_relu` | ReLU 활성화 |
+| 기능 검증 | `test_flatten` | Flatten 변환 |
+| 기능 검증 | `test_compute_stats` | 통계 계산 (min/max/mean) |
+| 기능 검증 | `test_extract_features` | 다중 커널 특징 추출 |
+| 기능 검증 | `test_find_strongest_feature` | 최강 특징 커널 탐색 |
+| 결과 검증 | `test_main_feature_sums` | 전체 파이프라인 특징맵 합계 |
+| 결과 검증 | `test_main_strongest` | 전체 파이프라인 최강 특징 |
 
 ## 실행 방법
 

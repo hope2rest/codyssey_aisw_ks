@@ -1,4 +1,4 @@
-"""미션별 conftest — submission_dir fixture 제공 (zip 제출 지원)"""
+"""미션별 conftest — submission_dir, data_path fixture 제공"""
 import os
 import zipfile
 

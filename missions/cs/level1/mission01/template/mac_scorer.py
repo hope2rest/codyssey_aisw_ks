@@ -1,4 +1,5 @@
 import json
+import time
 
 
 def load_data(filepath):
@@ -21,5 +22,17 @@ def find_best_match(pattern, filters):
     # TODO: 패턴과 가장 높은 MAC 점수를 가진 필터 이름 반환
 
 
+def measure_mac_time(n, repeat=5):
+    # TODO: NxN 크기 MAC 연산의 평균 실행 시간 측정 (초)
+
+
+def analyze_complexity(sizes, times):
+    # TODO: 크기별 시간 데이터로 시간 복잡도 분석
+
+
+def diagnose_failure(scores, best_match, expected_label, filter_names):
+    # TODO: 실패 원인을 data_schema / numerical / logic / none 으로 분류
+
+
 def main(data_path):
-    # TODO: 전체 파이프라인 실행
+    # TODO: 전체 분석 파이프라인 실행

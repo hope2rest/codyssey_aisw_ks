@@ -1,144 +1,99 @@
-## 문항 2: MAC 연산 심화 분석
+## 문항 2: 2D 컨볼루션 기반 특징 추출
 
 ### 문제
 
-문항 1에서 구현한 MAC 연산을 기반으로, 성능 벤치마크와 시간 복잡도 분석, 실패 원인 진단, 핵심 개념 설명 기능을 추가한 심화 분석 프로그램을 구현하세요.
+`data/data.json`에 저장된 5×5 이미지와 3×3 커널을 읽어, 2D 컨볼루션으로 특징맵을 추출하고 가장 강한 반응을 보이는 커널을 찾는 프로그램을 구현하세요.
 
 ### data.json 구조
 
 | 키 | 타입 | 내용 |
 |----|------|------|
-| `patterns` | `dict[str, list[list[int\|float]]]` | 매칭 대상 이미지 4개 (`img_01`~`img_04`), 각 3×3 정수 또는 실수 배열 |
-| `filters` | `dict[str, list[list[int]]]` | 비교 기준 필터 3개 (`cross`, `block`, `line`), 각 3×3 정수 배열 |
-| `labels` | `dict[str, str]` | 패턴별 정답 라벨 |
+| `images` | `dict[str, list[list[int]]]` | 분석 대상 이미지 3개 (`img_01`~`img_03`), 각 5×5 정수 배열 |
+| `kernels` | `dict[str, list[list[int]]]` | 특징 추출 커널 3개 (`edge_h`, `edge_v`, `sharpen`), 각 3×3 정수 배열 |
 
 ### 구현 요구사항
-
-#### Part A: MAC 연산 기본
 
 #### 1. `load_data(filepath: str) → dict`
 
 - JSON 파일을 읽어 딕셔너리로 반환합니다.
 
-#### 2. `mac(a: list[list], b: list[list]) → int | float`
+#### 2. `pad_matrix(matrix: list[list], pad_size: int) → list[list]`
 
-- 두 개의 2D 리스트에 대해 MAC 연산을 수행합니다.
-- 같은 위치의 값을 곱한 뒤 전부 더합니다.
+- 2D 행렬의 상하좌우에 `pad_size`만큼 0을 추가합니다.
 
 **예시:**
 ```python
-a = [[0.5, 0.5], [0.5, 0.5]]
-b = [[1.0, 0.0], [0.0, 1.0]]
-mac(a, b)  # 1.0
+pad_matrix([[1, 2], [3, 4]], 1)
+# [[0, 0, 0, 0], [0, 1, 2, 0], [0, 3, 4, 0], [0, 0, 0, 0]]
 ```
 
-#### 3. `normalize_labels(labels: dict) → dict`
+#### 3. `conv2d(image: list[list], kernel: list[list]) → list[list]`
 
-- 딕셔너리의 키를 모두 소문자로 변환한 새 딕셔너리를 반환합니다.
-- 값은 변경하지 않습니다.
+- 패딩 없이 stride=1로 2D 컨볼루션을 수행합니다.
+- 출력 크기: `(H - kH + 1) × (W - kW + 1)`
+- 각 위치에서 이미지 패치와 커널의 같은 위치 값을 곱한 뒤 전부 더합니다.
 
-#### 4. `is_close(a: float, b: float, epsilon: float = 1e-6) → bool`
+**예시:**
+```python
+image = [[1,2,3,4], [5,6,7,8], [9,10,11,12], [13,14,15,16]]
+kernel = [[1,0,0], [0,1,0], [0,0,1]]
+conv2d(image, kernel)  # [[18, 21], [30, 33]]
+```
 
-- 두 수의 차이가 epsilon 미만이면 `True`를 반환합니다.
+#### 4. `relu(matrix: list[list]) → list[list]`
 
-#### 5. `find_best_match(pattern: list[list], filters: dict) → str`
+- 행렬의 모든 음수 값을 0으로 변환한 새 행렬을 반환합니다.
 
-- 패턴과 각 필터의 MAC 점수를 계산하여, 가장 높은 점수를 받은 필터 이름을 반환합니다.
+#### 5. `flatten(matrix: list[list]) → list`
 
-#### Part B: 성능 벤치마크 및 시간 복잡도 분석
+- 2D 행렬을 행 우선(row-major) 순서로 1D 리스트로 변환합니다.
 
-#### 6. `measure_mac_time(n: int, repeat: int = 5) → float`
+#### 6. `compute_stats(matrix: list[list]) → dict`
 
-- NxN 크기의 패턴 두 개를 생성하여 MAC 연산의 평균 실행 시간(초)을 측정합니다.
-- `time.time()`을 사용하여 `repeat`회 반복 후 평균을 반환합니다.
+- 2D 행렬의 통계를 계산합니다.
+- 반환 형식: `{"min": 최솟값, "max": 최댓값, "mean": 평균}`
 
-#### 7. `analyze_complexity(sizes: list, times: list) → dict`
+#### 7. `extract_features(image: list[list], kernels: dict) → dict`
 
-- 크기별 측정 시간 데이터를 받아 시간 복잡도를 분석합니다.
+- 각 커널로 컨볼루션 후 ReLU를 적용한 특징맵 딕셔너리를 반환합니다.
+- 반환 형식: `{"커널명": relu(conv2d(image, kernel)), ...}`
+
+#### 8. `find_strongest_feature(image: list[list], kernels: dict) → str`
+
+- ReLU 적용 후 특징맵의 전체 합이 가장 큰 커널 이름을 반환합니다.
+
+#### 9. `main(data_path: str) → dict`
+
+- 데이터 로드 → 특징 추출 → 합계 계산 → 최강 특징 판별을 순서대로 실행합니다.
 - 반환 형식은 다음과 같습니다.
 
 ```python
 {
-    "size_pairs": [[1, 2], [2, 4], ...],   # 인접 크기 쌍
-    "time_ratios": [실수, ...],             # 시간 비율
-    "estimated_order": "O(N^2)"             # 추정 시간 복잡도
-}
-```
-
-#### Part C: 실패 원인 진단
-
-#### 8. `diagnose_failure(scores: dict, best_match: str, expected_label: str, filter_names: list) → dict`
-
-- 매칭 결과의 실패 원인을 다음 3가지로 분류합니다.
-  - `"data_schema"` — 키 누락, 데이터 불일치 등 데이터/스키마 문제
-  - `"numerical"` — 점수 차이가 epsilon 미만인 부동소수점 비교 문제
-  - `"logic"` — 점수 차이가 명확하지만 잘못된 필터가 선택된 로직 오류
-- 예측이 정답과 일치하면 `"none"`을 반환합니다.
-- 반환 형식: `{"category": 문자열, "reason": 문자열}`
-
-#### Part D: 개념 설명
-
-#### 9. `get_mac_explanation() → str`
-
-- MAC 연산의 정의와 AI에서의 중요성을 한국어로 50자 이상 서술합니다.
-
-#### 10. `get_normalization_reason() → str`
-
-- 라벨 키를 표준화(정규화)하는 이유를 한국어로 30자 이상 서술합니다.
-
-#### 11. `get_epsilon_reason() → str`
-
-- 허용오차(epsilon) 기반 비교가 필요한 이유를 한국어로 30자 이상 서술합니다.
-
-#### 전체 파이프라인
-
-#### 12. `main(data_path: str) → dict`
-
-- 데이터 로드 → 점수 계산 → 최적 매칭 → 성능 벤치마크 → 실패 진단 → 개념 설명을 순서대로 실행합니다.
-- 벤치마크 크기: `sizes=[1, 2, 4, 8, 16, 32]`
-- 반환 형식은 다음과 같습니다.
-
-```python
-{
-    "scores": {
-        "img_01": {"cross": 정수, "block": 정수, "line": 정수},
+    "feature_maps": {
+        "img_01": {
+            "edge_h": [[정수, ...], ...],
+            "edge_v": [[정수, ...], ...],
+            "sharpen": [[정수, ...], ...]
+        },
         ...
     },
-    "best_matches": {
-        "img_01": "필터명",
+    "feature_sums": {
+        "img_01": {"edge_h": 정수, "edge_v": 정수, "sharpen": 정수},
         ...
     },
-    "labels": {
-        "img_01": "라벨명",
+    "strongest_features": {
+        "img_01": "커널명",
         ...
-    },
-    "benchmarks": {
-        "sizes": [1, 2, 4, 8, 16, 32],
-        "times": [실수, ...],
-        "complexity_analysis": {
-            "size_pairs": [[1, 2], [2, 4], ...],
-            "time_ratios": [실수, ...],
-            "estimated_order": "O(N^2)"
-        }
-    },
-    "diagnosis": {
-        "img_01": {"category": "분류", "reason": "설명"},
-        ...
-    },
-    "explanations": {
-        "mac_explanation": "50자 이상 한국어 서술",
-        "normalization_reason": "30자 이상 한국어 서술",
-        "epsilon_reason": "30자 이상 한국어 서술"
     }
 }
 ```
 
 ### 제약 사항
 
-- **외부 라이브러리 사용 금지** - `json`과 `time` 외 외부 라이브러리는 사용할 수 없습니다.
-- Python 기본 문법(반복문, 조건문, 딕셔너리)만으로 구현하세요.
+- **외부 라이브러리 사용 금지** - `json` 외 외부 라이브러리는 사용할 수 없습니다.
+- Python 기본 문법(반복문, 조건문, 리스트, 딕셔너리)만으로 구현하세요.
 
 ### 제출 방식
 
-- `mac_analyzer.py` 파일 1개를 제출합니다.
-- `template/mac_analyzer.py`의 `# TODO` 부분을 채우세요
+- `conv2d_analyzer.py` 파일 1개를 제출합니다.
+- `template/conv2d_analyzer.py`의 `# TODO` 부분을 채우세요.
