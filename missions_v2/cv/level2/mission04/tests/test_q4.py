@@ -1,5 +1,5 @@
 """
-Q4 CV — pytest 검증 (15개 테스트, 정량적 검증만)
+Q4 CV — pytest 검증 (18개 테스트, 정량적 검증만)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
 제출물: conv2d.py, counter.py, metrics.py, main.py, result_q4.json (5파일)

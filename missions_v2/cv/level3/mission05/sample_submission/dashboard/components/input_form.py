@@ -8,8 +8,8 @@ FEATURE_LABELS = {
     "employment_years": "근속 연수",
     "loan_amount": "대출 금액",
     "num_credit_lines": "신용 계좌 수",
-    "recent_inquiries": "최근 조회 수",
-    "payment_history": "납부 이력 점수",
+    "interest_rate": "금리",
+    "payment_history_score": "납부 이력 점수",
 }
 
 

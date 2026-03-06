@@ -215,10 +215,10 @@ def compare_methods(predictions_base, predictions_aug, labels):
 | 12 | MAE/Accuracy 계산 | 5점 | import 자동 |
 | 13 | 최악 케이스 탐색 | 5점 | import 자동 |
 | 14 | 기본 vs 증강 방법 비교 | 5점 | import 자동 |
-| 15 | result_q4.json 필수 키 확인 | 5점 | JSON 자동 |
-| 16 | 예측 결과 15개 이미지 포함 | 5점 | JSON 자동 |
-| 17 | easy 카테고리 MAE < 2.0 | 5점 | JSON 자동 |
-| 18 | 증강이 기본보다 MAE 개선 | 5점 | JSON 자동 |
+| 15 | result_q4.json 유효 이미지만 포함 | 5점 | JSON 자동 |
+| 16 | 증강 예측 정수·양수 검증 | 5점 | JSON 자동 |
+| 17 | 기본 vs 증강 비교 결과 필수 키 포함 | 5점 | JSON 자동 |
+| 18 | filter2D 사용 금지 검증 | 5점 | AST 자동 |
 
 - Pass 기준: 총 100점 중 100점 (18개 전체 정답)
 - AI 트랩: conv2d에서 cv2.filter2D 사용 (금지), 그레이스케일 변환 계수 오류, Sobel 커널 방향 혼동, 이진화 임계값 부적절, Connected Component에서 최소 면적 필터 누락, 밝기 조절 후 클리핑 누락
@@ -238,12 +238,12 @@ def compare_methods(predictions_base, predictions_aug, labels):
 
 | 학습 목표 | 검증 테스트 |
 |-----------|-----------|
-| 2D 컨볼루션 직접 구현 | test_conv2d_valid, test_conv2d_identity |
-| 그레이스케일 변환 | test_to_grayscale |
-| Sobel 엣지 검출 | test_edge_magnitude |
-| 이미지 증강 기법 | test_flip_horizontal, test_flip_vertical, test_adjust_brightness |
-| 객체 카운팅 (Connected Component) | test_count_boxes |
-| 앙상블 기법 (중앙값 투표) | test_ensemble_count, test_count_boxes_augmented |
-| 바운딩 박스 추출 | test_extract_bounding_boxes |
+| 2D 컨볼루션 직접 구현 | test_conv2d_identity, test_conv2d_sobel |
+| 그레이스케일 변환 | test_grayscale |
+| 이미지 증강 기법 | test_flip_operations, test_brightness_and_normalize |
+| 객체 카운팅 (Connected Component) | test_count_boxes_augmented |
+| 앙상블 기법 (중앙값 투표) | test_ensemble_count |
+| 바운딩 박스 추출 | test_bounding_boxes_format |
 | 정량적 성능 평가 | test_compute_metrics, test_find_worst_case, test_compare_methods |
-| 파이프라인 통합 | test_result_structure, test_predictions_count, test_easy_mae, test_augmented_improvement |
+| 파이프라인 통합 | test_valid_images_only, test_augmented_predictions, test_method_comparison |
+| 코드 구조 검증 | test_conv2d_functions, test_counter_functions, test_metrics_functions, test_no_filter2d |

@@ -1,5 +1,5 @@
 """
-Q5 금융 리스크 예측 서비스 — pytest 검증 (28개 테스트)
+Q5 금융 리스크 예측 서비스 — pytest 검증 (34개 테스트)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
 제출물: core/ 폴더 구조 (preprocessor.py, model.py, interpreter.py, predictor.py, main.py)

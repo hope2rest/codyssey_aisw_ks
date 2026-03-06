@@ -78,8 +78,8 @@ data/
 #### 7. `convert_fahrenheit(temp_f: np.ndarray) -> np.ndarray`
 - 화씨를 섭씨로 변환합니다: `°C = (°F - 32) × 5/9`
 
-#### 8. `validate_data(data: np.ndarray, monthly_stats: np.ndarray) -> dict`
-- 월별 평균 전력 수요를 계산하여 제공된 월별 통계와 비교합니다.
+#### 8. `validate_data(monthly_calculated: dict, monthly_stats_path: str) -> dict`
+- 월별 평균 전력 수요를 계산하여 제공된 월별 통계 파일과 비교합니다.
 - 각 월의 차이율(%)을 계산합니다.
 - 반환: `{"월": {"calculated_mean": float, "reference_mean": float, "diff_pct": float}}`
 

@@ -103,12 +103,7 @@ def binary_cross_entropy(predicted, target):
     Returns:
         Tensor 스칼라 손실값
     """
-    eps = 1e-12
-    pred_clipped = Tensor(np.clip(predicted.data, eps, 1 - eps),
-                          requires_grad=predicted.requires_grad,
-                          _children=predicted._prev)
-    # 클리핑을 통한 그래디언트 흐름 구축
-    # 예측값에 직접 log를 안전하게 적용
+    # 예측값에 직접 log를 안전하게 적용 (Tensor.log 내부에서 클리핑 처리)
     log_p = predicted.log()
     one_minus_p = Tensor(np.ones_like(predicted.data)) - predicted
     log_one_minus_p = one_minus_p.log()

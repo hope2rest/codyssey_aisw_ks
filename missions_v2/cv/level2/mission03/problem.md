@@ -13,14 +13,14 @@ data/
 ```
 
 - `xor_data.npz`: XOR 문제 학습용 데이터입니다. `X`(4×2)는 입력, `y`(4×1)는 XOR 출력입니다.
-- `regression_data.npz`: 선형 회귀 학습/테스트 데이터입니다. `X_train`(40×2), `y_train`(40×1), `X_test`(10×2), `y_test`(10×1)로 구성됩니다.
+- `regression_data.npz`: 선형 회귀 학습 데이터입니다. `X`(50×2), `y`(50×1)로 구성됩니다.
 
 ### 데이터 키 구조
 
 | 파일 | 키 | 설명 |
 |------|-----|------|
 | `xor_data.npz` | `X` (4×2), `y` (4×1) | XOR 논리 연산 데이터 |
-| `regression_data.npz` | `X_train` (40×2), `y_train` (40×1), `X_test` (10×2), `y_test` (10×1) | 선형 회귀 데이터 |
+| `regression_data.npz` | `X` (50×2), `y` (50×1) | 선형 회귀 데이터 |
 
 ### 프로젝트 구조
 

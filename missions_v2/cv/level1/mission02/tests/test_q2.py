@@ -1,5 +1,5 @@
 """
-Q2 도서 검색 및 추천 서비스 — pytest 검증 (25개 테스트)
+Q2 도서 검색 및 추천 서비스 — pytest 검증 (30개 테스트)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
 제출물: core/ 폴더 구조 (search_engine.py, recommender.py, sentiment.py, main.py)
