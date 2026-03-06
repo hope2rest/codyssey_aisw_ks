@@ -1,10 +1,10 @@
-## 문항 3: 이미지 기반 객체 카운팅
+## 문항: 이미지 기반 객체 카운팅
 
 ### 문제
 
 제공되는 이미지에서 박스(Box)의 개수를 카운팅하는 규칙 기반 파이프라인을 4개의 모듈 파일로 나누어 구현하세요.
 - 이미지(easy/medium/hard 각 5장, 총 15장)는 `data/images/`에, 정답 박스 개수는 `data/labels.json`에 저장되어 있습니다.
-- 2D 컨볼루션을 활용한 엣지 검출, 데이터 증강 앙상블, 검출 일지 관리까지 포함하는 종합 파이프라인입니다.
+- 2D 컨볼루션을 활용한 엣지 검출, 데이터 증강 앙상블, 정량적 성능 비교를 포함하는 종합 파이프라인입니다.
 
 ### 프로젝트 구조
 
@@ -12,7 +12,7 @@
 |------|------|----------|
 | `conv2d.py` | 2D 컨볼루션, 엣지 검출, 이미지 증강 | `conv2d()`, `to_grayscale()`, `compute_edge_magnitude()`, `flip_horizontal()`, `flip_vertical()`, `adjust_brightness()`, `normalize_image()` |
 | `counter.py` | 박스 카운팅 및 증강 앙상블 | `count_boxes()`, `ensemble_count()`, `count_boxes_augmented()`, `extract_bounding_boxes()` |
-| `metrics.py` | 성능 지표, 방법 비교, 검출 일지 | `compute_metrics()`, `find_worst_case()`, `get_failure_reasons()`, `get_why_learning_based()`, `compare_methods()`, `create_detection_log()`, `generate_weekly_report()` |
+| `metrics.py` | 정량적 성능 지표, 방법 비교 | `compute_metrics()`, `find_worst_case()`, `compare_methods()` |
 | `main.py` | 전체 파이프라인 실행 | `main()` |
 
 ### 입력 데이터
@@ -79,7 +79,7 @@
 - 검출된 각 박스의 바운딩 박스 좌표를 추출합니다.
 - 반환: `[{"x_min": 정수, "y_min": 정수, "x_max": 정수, "y_max": 정수, "area": 정수}, ...]`
 
-#### Part C: metrics.py - 정량적 성능 분석 및 한계 보고
+#### Part C: metrics.py - 정량적 성능 분석
 
 #### 12. `compute_metrics(predictions, labels, category)`
 - MAE (Mean Absolute Error): 예측 개수와 실제 개수 차이의 평균
@@ -88,40 +88,22 @@
 #### 13. `find_worst_case(predictions, labels, category)`
 - 해당 카테고리에서 오차가 가장 큰 이미지 이름을 반환합니다.
 
-#### 14. `get_failure_reasons()`
-- hard 카테고리에서 규칙 기반 방식이 실패하는 기술적 원인을 3가지 이상 서술합니다.
-- 각 항목은 한국어로 20자 이상 작성합니다.
-
-#### 15. `get_why_learning_based()`
-- 학습 기반 접근법(CNN 등)이 필요한 이유를 200자 이내 한국어로 서술합니다.
-
-#### Part D: metrics.py - 방법 비교 및 검출 일지 관리
-
-#### 16. `compare_methods(predictions_base, predictions_aug, labels)`
+#### 14. `compare_methods(predictions_base, predictions_aug, labels)`
 - 기본 카운팅과 증강 앙상블 카운팅의 카테고리별 MAE/Accuracy를 비교합니다.
 - 반환: 카테고리별 `base_mae`, `augmented_mae`, `mae_improvement`, `base_accuracy`, `augmented_accuracy`
 
-#### 17. `create_detection_log(predictions, labels, date_str)`
-- 일자별 검출 결과를 로그로 기록합니다.
-- 반환: `date`, `total_images`, `results`(이미지별 예측/실제/오차/정답여부), `daily_accuracy`
+#### Part D: main.py - 전체 파이프라인
 
-#### 18. `generate_weekly_report(daily_logs)`
-- 7일분 일일 로그를 집계하여 주간 보고서를 생성합니다.
-- 반환: `week_start`, `week_end`, `total_images_processed`, `average_daily_accuracy`, `best_day`, `worst_day`
-
-#### Part E: main.py - 전체 파이프라인
-
-#### 19. `main()`
+#### 15. `main()`
 - `labels.json` 로드 → 유효 이미지 필터
 - 기본 카운팅 (`count_boxes`) 및 증강 앙상블 카운팅 (`count_boxes_augmented`)
 - 바운딩 박스 추출 (`extract_bounding_boxes`)
 - 메트릭 계산 (기본 + 증강) 및 방법 비교 (`compare_methods`)
-- 7일분 검출 일지 생성 및 주간 보고서 (`create_detection_log`, `generate_weekly_report`)
-- `result_q1.json` 파일로 결과를 저장
+- `result_q3.json` 파일로 결과를 저장
 
 ### 출력 형식
 
-`result_q1.json` 파일로 다음 구조를 저장합니다:
+`result_q3.json` 파일로 다음 구조를 저장합니다:
 
 ```json
 {
@@ -145,17 +127,7 @@
     "medium": {"base_mae": 실수, "augmented_mae": 실수, "mae_improvement": 실수, ...},
     "hard":   {"base_mae": 실수, "augmented_mae": 실수, "mae_improvement": 실수, ...}
   },
-  "worst_case_image": "hard_XX",
-  "failure_reasons": ["이유1 (20자 이상)", "이유2", "이유3"],
-  "why_learning_based": "200자 이내 서술",
-  "weekly_report": {
-    "week_start": "YYYY-MM-DD",
-    "week_end": "YYYY-MM-DD",
-    "total_images_processed": 정수,
-    "average_daily_accuracy": 실수,
-    "best_day": "YYYY-MM-DD",
-    "worst_day": "YYYY-MM-DD"
-  }
+  "worst_case_image": "hard_XX"
 }
 ```
 
@@ -168,5 +140,5 @@
 
 ### 제출 방식
 
-- `conv2d.py`, `counter.py`, `metrics.py`, `main.py`, `result_q1.json` 총 5개 파일을 zip으로 묶어 제출합니다.
+- `conv2d.py`, `counter.py`, `metrics.py`, `main.py`, `result_q3.json` 총 5개 파일을 zip으로 묶어 제출합니다.
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.

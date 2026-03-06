@@ -1,51 +1,68 @@
-"""Q2. TF-IDF 코사인유사도 문서검색 — 뼈대 코드"""
+"""
+문항 2: TF-IDF 문서 검색 + 규칙 기반 감성 분석
+
+NumPy만 사용하여 구현하세요.
+"""
+import json
+import os
+import re
+import unicodedata
+from collections import Counter
+
+import numpy as np
 
 
-def preprocess(text, stopwords):
-    """텍스트 전처리: 정규화 → 소문자 → 특수문자 제거 → 토큰화 → 불용어 제거"""
-    # TODO: 구현
+# ──────────────────────────────────────────────
+# Part A: TF-IDF 문서 검색
+# ──────────────────────────────────────────────
+
+def preprocess(text: str, stopwords: set) -> list:
+    """텍스트 전처리: NFC 정규화 → 소문자 → 특수문자 제거 → 토큰화 → 불용어/짧은 토큰 제거"""
+    # TODO: 구현하세요
     pass
 
 
-def cosine_similarity(a, b):
-    """두 벡터 간 코사인 유사도 계산"""
-    # TODO: 구현
+def cosine_similarity(a, b) -> float:
+    """두 벡터 간 코사인 유사도 (영벡터면 0.0)"""
+    # TODO: 구현하세요
     pass
 
 
-def search(query, documents, vocab, idf, stopwords, top_k=3):
-    """쿼리에 대해 TF-IDF 코사인유사도 기반 상위 top_k 문서 검색"""
-    # TODO: 구현
+def search(query_text, tfidf_matrix, vocab, word2idx, idf, stopwords, top_n=3):
+    """쿼리에 대해 상위 top_n 문서 검색"""
+    # TODO: 구현하세요
     pass
 
 
-def main():
-    data_dir = "data"
+# ──────────────────────────────────────────────
+# Part B: 규칙 기반 감성 분석
+# ──────────────────────────────────────────────
 
-    # TODO: 문서 로드 (documents.txt)
+def rule_based_predict(text: str, sentiment_dict: dict) -> int:
+    """규칙 기반 감성 예측 (1=긍정, 0=부정)"""
+    # TODO: 구현하세요
+    pass
 
-    # TODO: 불용어 로드 (stopwords.txt)
 
-    # TODO: 쿼리 로드 (queries.txt)
+def compute_sentiment_metrics(predictions: list, labels: list) -> dict:
+    """Accuracy, Precision, Recall, F1 계산"""
+    # TODO: 구현하세요
+    pass
 
-    # TODO: 전체 문서 전처리
 
-    # TODO: 어휘 사전 구축
+# ──────────────────────────────────────────────
+# Main
+# ──────────────────────────────────────────────
 
-    # TODO: IDF 계산
-
-    # TODO: TF-IDF 행렬 생성
-
-    # TODO: 각 쿼리에 대해 검색 수행
-
-    result = {
-        "vocab_size": None,
-        "tfidf_matrix_shape": [],
-        "search_results": [],
-    }
-
-    # TODO: result를 JSON 파일로 저장
+def main(data_dir: str) -> dict:
+    """전체 파이프라인 실행 및 result_q2.json 저장"""
+    # TODO: 구현하세요
+    pass
 
 
 if __name__ == "__main__":
-    main()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base_dir, "..", "data")
+    result = main(data_dir)
+    with open(os.path.join(base_dir, "result_q2.json"), "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)

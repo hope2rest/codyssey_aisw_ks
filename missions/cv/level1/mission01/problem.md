@@ -1,68 +1,92 @@
-## 문항 1: SVD 기반 데이터 차원 축소 및 복원 정확도 분석
+## 문항: 이커머스 데이터 전처리 및 이상치 탐지 파이프라인
 
 ### 문제
 
-공장의 100개 센서에서 수집된 500건의 측정 데이터를 SVD로 분해하여 차원을 축소하고, 복원 정확도를 분석하는 프로그램을 구현하세요.
-- 센서 데이터는 `data/sensor_data.csv`에 저장되어 있습니다 (헤더 없는 500x100 숫자 행렬, 쉼표 구분).
-- SVD(Singular Value Decomposition)는 행렬을 U, S, Vt 세 행렬로 분해하는 기법으로, 데이터의 핵심 패턴만 보존하면서 노이즈를 제거하는 차원 축소에 활용됩니다.
+이커머스 고객 데이터를 전처리하고, IQR/Z-score 기반 이상치를 탐지하며, 고객 세그먼트를 분류하는 파이프라인을 구현하세요.
+- 고객 데이터는 `data/customers.csv`에 저장되어 있습니다 (헤더 포함, 쉼표 구분).
+- IQR(Interquartile Range)은 Q3-Q1으로 계산되며, Q1-1.5*IQR 미만 또는 Q3+1.5*IQR 초과인 값을 이상치로 판별하는 통계 기법입니다.
 
-### sensor_data.csv 구조
+### customers.csv 구조
 
-| 구분 | 내용 |
-|------|------|
-| 형태 | 500x100 숫자 행렬 (헤더 없음) |
-| 행 | 1건의 측정 데이터 (총 500건) |
-| 열 | 1개 센서 값 (총 100개 센서) |
-| 구분자 | 쉼표(,) |
+| 열 이름 | 타입 | 설명 |
+|---------|------|------|
+| `customer_id` | int | 고객 고유 ID (일부 중복 존재) |
+| `age` | float | 나이 (일부 결측) |
+| `annual_income` | float | 연간 소득 (만원, 일부 결측) |
+| `spending_score` | float | 소비 점수 (1~100, 일부 이상치) |
+| `purchase_count` | int | 구매 횟수 |
+| `avg_order_value` | float | 평균 주문 금액 (만원, 일부 결측) |
+| `days_since_last` | int | 마지막 구매 후 경과일 |
+| `total_spent` | float | 총 구매 금액 (만원) |
 
 ### 구현 요구사항
 
-#### 1. 데이터 로드 및 전처리
-- `sensor_data.csv`를 로드하세요 (헤더 없음).
-- 각 열(feature)에 대해 평균 0, 표준편차 1로 표준화(Standardization)하세요.
-- 표준편차 계산 시 `ddof=0`을 사용하세요.
-- 상수 열(표준편차가 0에 가까운 열)은 제거 후 표준화하세요.
+#### 1. `load_and_clean(filepath: str) -> tuple[np.ndarray, list[str]]`
+- CSV 파일을 `numpy`로 로드합니다 (`customer_id` 열 제외).
+- 중복 행(모든 열 값이 동일)을 제거합니다 (첫 번째만 유지).
+- 결측값(`NaN`)은 해당 열의 **중앙값(median)**으로 대체합니다.
+- 반환: `(정제된 2D 배열, 열 이름 리스트)`
 
-#### 2. SVD 분해
-- 표준화된 데이터 행렬 X에 대해 `numpy.linalg.svd`를 사용하여 U, S, Vt로 분해하세요.
-- 반드시 `full_matrices=False` 옵션을 사용하세요.
+#### 2. `compute_statistics(data: np.ndarray, columns: list[str]) -> dict`
+- 각 열에 대해 `mean`, `std`(ddof=0), `min`, `max`, `median`을 계산합니다.
+- 반환: `{열이름: {"mean": float, "std": float, "min": float, "max": float, "median": float}}`
 
-#### 3. Explained Variance Ratio 계산
-- 각 특이값에 대한 Explained Variance Ratio를 다음 수식으로 계산하세요:
-  ```
-  explained_variance_ratio[i] = S[i]** 2 / sum(S** 2)
-  ```
+#### 3. `detect_outliers_iqr(data: np.ndarray, col_idx: int) -> list[int]`
+- 해당 열에서 IQR 기반 이상치의 **행 인덱스** 리스트를 반환합니다.
+- `Q1 = np.percentile(data[:, col_idx], 25)`, `Q3 = np.percentile(data[:, col_idx], 75)`
+- 이상치 조건: `값 < Q1 - 1.5 * IQR` 또는 `값 > Q3 + 1.5 * IQR`
 
-#### 4. 최적 k 결정
-- Cumulative Explained Variance Ratio가 처음으로 95% 이상이 되는 최소 k값을 구하세요.
+#### 4. `detect_outliers_zscore(data: np.ndarray, col_idx: int, threshold: float = 3.0) -> list[int]`
+- Z-score = `(값 - 평균) / 표준편차` (표준편차는 `ddof=0`)
+- `|Z-score| > threshold`인 행 인덱스 리스트를 반환합니다.
 
-#### 5. 차원 축소 및 복원
-- 결정된 k값으로 데이터를 축소하고 다시 복원하세요:
-  ```
-  X_reduced = U[:, :k] * S[:k]
-  X_reconstructed = X_reduced @ Vt[:k, :]
-  ```
+#### 5. `standardize(data: np.ndarray) -> np.ndarray`
+- 각 열을 Z-score 표준화합니다: `(값 - 평균) / 표준편차` (ddof=0)
+- 표준편차가 0인 열은 0으로 유지합니다.
+- 반환: 표준화된 2D 배열
 
-#### 6. 복원 오차 계산 및 결과 저장
-- 원본 표준화 데이터와 복원 데이터 간의 MSE를 계산하세요:
-  ```
-  MSE = mean((X - X_reconstructed)** 2)
-  ```
-- 결과를 `result_q1.json` 파일로 다음 구조에 맞게 저장하세요:
-  ```json
-  {
-    "optimal_k": 정수,
-    "cumulative_variance_at_k": 실수 (소수점 6자리),
-    "reconstruction_mse": 실수 (소수점 6자리),
-    "top_5_singular_values": [실수 5개],
-    "explained_variance_ratio_top5": [실수 5개]
+#### 6. `segment_customers(data: np.ndarray, columns: list[str]) -> dict`
+- `annual_income`과 `spending_score` 열을 사용합니다.
+- 각 열의 중앙값을 기준으로 4개 세그먼트로 분류합니다:
+  - `high_income_high_spend`: 소득 >= 중앙값 AND 소비 >= 중앙값
+  - `high_income_low_spend`: 소득 >= 중앙값 AND 소비 < 중앙값
+  - `low_income_high_spend`: 소득 < 중앙값 AND 소비 >= 중앙값
+  - `low_income_low_spend`: 소득 < 중앙값 AND 소비 < 중앙값
+- 반환: `{세그먼트명: {"count": int, "mean_income": float, "mean_spending": float}}`
+
+#### 7. `main(data_path: str) -> dict`
+- 전체 파이프라인을 실행하고 `result_q1.json`을 저장합니다.
+
+### 출력 형식
+
+`result_q1.json` 파일로 다음 구조를 저장합니다:
+
+```json
+{
+  "total_rows_raw": 정수,
+  "total_rows_cleaned": 정수,
+  "duplicates_removed": 정수,
+  "missing_values_filled": 정수,
+  "statistics": {
+    "열이름": {"mean": 실수, "std": 실수, "min": 실수, "max": 실수, "median": 실수}
+  },
+  "outlier_counts_iqr": {"열이름": 정수},
+  "outlier_counts_zscore": {"열이름": 정수},
+  "standardized_mean_check": {"열이름": 실수},
+  "standardized_std_check": {"열이름": 실수},
+  "segments": {
+    "세그먼트명": {"count": 정수, "mean_income": 실수, "mean_spending": 실수}
   }
-  ```
+}
+```
+
+- 모든 부동소수점 결과는 소수점 이하 6자리로 반올림합니다.
 
 ### 제약 사항
-- NumPy만 사용하여 모든 계산을 수행할 것 (`pandas`는 데이터 로드에만 허용, `sklearn`/`scipy` 금지)
-- `numpy.linalg.svd` 호출 시 `full_matrices=False` 옵션을 반드시 사용할 것
-- 모든 부동소수점 결과는 소수점 이하 6자리로 반올림하여 출력할 것
+- NumPy만 사용하여 모든 계산을 수행합니다 (`pandas`, `sklearn`, `scipy` 사용 금지).
+- CSV 로드 시 표준 라이브러리 `csv` 모듈 사용 가능합니다.
+- 표준편차 계산 시 `ddof=0`을 사용합니다.
 
 ### 제출 방식
 - `q1_solution.py`와 `result_q1.json` 두 파일을 제출합니다.
+- `template/q1_solution.py`의 `# TODO` 부분을 채우세요.

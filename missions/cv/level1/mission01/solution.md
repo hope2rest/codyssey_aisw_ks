@@ -1,37 +1,38 @@
-## 문항 1 정답지 — SVD 기반 데이터 차원 축소 및 복원 정확도 분석
+## 문항 1 정답지 — 이커머스 데이터 전처리 및 이상치 탐지 파이프라인
 
 ### 데이터 타입
 
 | 키 | 타입 | 설명 |
 |----|------|------|
-| optimal_k | int | 누적 분산 95% 이상이 되는 최소 k |
-| cumulative_variance_at_k | float | 최적 k에서의 누적 분산 비율 (소수점 6자리) |
-| reconstruction_mse | float | 원본-복원 데이터 간 MSE (소수점 6자리) |
-| top_5_singular_values | list[float] | 상위 5개 특이값 (소수점 6자리) |
-| explained_variance_ratio_top5 | list[float] | 상위 5개 설명 분산 비율 (소수점 6자리) |
+| total_rows_raw | int | 원본 CSV 행 수 (205) |
+| total_rows_cleaned | int | 정제 후 행 수 (200) |
+| duplicates_removed | int | 제거된 중복 행 수 (5) |
+| missing_values_filled | int | 대체된 결측값 수 (15) |
+| statistics | dict | 열별 기술 통계량 |
+| outlier_counts_iqr | dict | IQR 이상치 개수 |
+| outlier_counts_zscore | dict | Z-score 이상치 개수 |
+| standardized_mean_check | dict | 표준화 후 평균 (≈0) |
+| standardized_std_check | dict | 표준화 후 표준편차 (≈1) |
+| segments | dict | 4개 고객 세그먼트 |
 
 ### 정답 체크리스트
 
-| 번호 | 체크 항목 | 배점 | 검증 방법 |
-|------|----------|------|----------|
-| 1 | optimal_k 일치 | 20점 | 정답과 정수 값 일치 여부 |
-| 2 | cumulative_variance_at_k 정확도 | 20점 | 정답 대비 소수점 6자리 오차 범위 검증 |
-| 3 | reconstruction_mse 정확도 | 20점 | 정답 대비 소수점 6자리 오차 범위 검증 |
-| 4 | top_5_singular_values 정확도 | 20점 | 상위 5개 특이값 각각의 오차 범위 검증 |
-| 5 | explained_variance_ratio_top5 정확도 | 20점 | 상위 5개 분산 비율 각각의 오차 범위 검증 |
+| 번호 | 체크 항목 | 검증 방법 |
+|------|----------|----------|
+| 1 | 필수 함수 7개 정의 | AST 분석으로 함수 존재 확인 |
+| 2 | sklearn/scipy/pandas 미사용 | 소스 코드 문자열 검색 |
+| 3 | 데이터 로드 후 형태 | (200, 7) ndarray 반환 |
+| 4 | NaN 제거 확인 | 정제 후 NaN 없음 |
+| 5 | 통계량 정확도 | mean/std/min/max/median 값 검증 |
+| 6 | IQR 이상치 탐지 | 알려진 이상치 탐지 여부 |
+| 7 | Z-score 이상치 탐지 | threshold 기반 탐지 검증 |
+| 8 | 표준화 정확도 | 평균≈0, 표준편차≈1 |
+| 9 | 세그먼트 합계 | 4개 세그먼트 합 = 전체 행 수 |
+| 10 | result_q1.json 구조 | 필수 키 10개 존재 확인 |
+| 11 | result_q1.json 값 | 정량적 값 일치 검증 |
 
-- **Pass 기준**: 5개 체크 항목 모두 충족 (100점 만점)
 - **AI 트랩**:
-  - `ddof=0` (모집단 표준편차) 사용 필수 — `ddof=1` 사용 시 결과 불일치
-  - 상수 열(std 근사 0) 제거 후 표준화 필요 — 제거하지 않으면 division by zero 또는 결과 왜곡
-  - `full_matrices=False`로 SVD 수행 — 기본값(`True`) 사용 시 행렬 크기 불일치
-
-### 학습 목표 매핑
-
-| 학습 목표 | 관련 구현 요구사항 |
-|----------|------------------|
-| SVD 분해 원리 이해 | 요구사항 2: numpy.linalg.svd로 U, S, Vt 분해 |
-| 분산 기반 차원 선택 | 요구사항 3, 4: Explained Variance Ratio 계산 및 최적 k 결정 |
-| 데이터 전처리 역량 | 요구사항 1: 상수 열 제거, ddof=0 표준화 |
-| 차원 축소 및 복원 | 요구사항 5: k개 주성분으로 축소 후 복원 |
-| 복원 품질 평가 | 요구사항 6: MSE 기반 복원 오차 측정 |
+  - `ddof=0` (모집단 표준편차) 사용 필수
+  - 중복 행 제거 시 첫 번째만 유지
+  - 결측값 대체 시 중앙값 사용 (평균이 아닌)
+  - IQR 이상치: 1.5배 규칙 정확히 적용

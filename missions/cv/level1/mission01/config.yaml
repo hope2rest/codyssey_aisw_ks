@@ -1,6 +1,6 @@
-mission_id: aiml_level1_q1_svd
-name: "Q1. SVD 기반 차원축소 복원분석"
-description: "센서 데이터에서 SVD를 활용한 차원 축소 및 복원 오차 분석"
+mission_id: cv_level1_q1_preprocessing
+name: "Q1. 이커머스 데이터 전처리 및 이상치 탐지"
+description: "고객 데이터에서 결측값 처리, IQR/Z-score 이상치 탐지, 고객 세그먼트 분류"
 difficulty: 1
 qnum: 1
 time_limit: 60
@@ -11,28 +11,28 @@ solution_file: q1_solution.py
 result_file: result_q1.json
 solution_required: true
 
-validators:
-  - file: validator.py
-    class: Q1SvdValidator
-
-ai_traps:
-  - "ddof=0 (모집단 표준편차) 사용 필수 - ddof=1 사용 시 결과 불일치"
-  - "상수 열(std≈0) 제거 후 표준화 필요"
-  - "full_matrices=False로 SVD 수행"
-
 checks:
   - id: "1"
-    description: "optimal_k 일치"
-    points: 20
+    description: "필수 함수 7개 정의"
+    points: 10
   - id: "2"
-    description: "cumulative_variance_at_k 정확도"
-    points: 20
+    description: "데이터 로드/정제 정확도"
+    points: 15
   - id: "3"
-    description: "reconstruction_mse 정확도"
-    points: 20
+    description: "통계량 계산 정확도"
+    points: 15
   - id: "4"
-    description: "top_5_singular_values 정확도"
-    points: 20
+    description: "IQR 이상치 탐지 정확도"
+    points: 15
   - id: "5"
-    description: "explained_variance_ratio_top5 정확도"
-    points: 20
+    description: "Z-score 이상치 탐지 정확도"
+    points: 15
+  - id: "6"
+    description: "표준화 정확도"
+    points: 10
+  - id: "7"
+    description: "고객 세그먼트 분류"
+    points: 10
+  - id: "8"
+    description: "result_q1.json 정량적 검증"
+    points: 10

@@ -1,63 +1,108 @@
 {
-  "rule_based": {
-    "accuracy": 0.9547,
-    "precision_pos": 1.0,
-    "recall_pos": 0.9469,
-    "precision_neg": 0.7639,
-    "recall_neg": 1.0,
-    "f1_macro": 0.9194
+  "preprocessing": {
+    "original_shape": [
+      200,
+      9
+    ],
+    "missing_values_before": 10,
+    "missing_values_after": 0,
+    "scaled_mean_abs_max": 0.0
   },
-  "ml_based": {
-    "accuracy": 0.9947,
-    "precision_pos": 0.9969,
-    "recall_pos": 0.9969,
-    "precision_neg": 0.9818,
-    "recall_neg": 0.9818,
-    "f1_macro": 0.9893
+  "model_logistic": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
   },
-  "shap_top5_positive": [
+  "model_ridge": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
+  },
+  "pca": {
+    "n_components_selected": 8,
+    "total_variance_explained": 0.966,
+    "variance_ratios": [
+      {
+        "component": 1,
+        "variance_ratio": 0.3858
+      },
+      {
+        "component": 2,
+        "variance_ratio": 0.1176
+      },
+      {
+        "component": 3,
+        "variance_ratio": 0.1148
+      },
+      {
+        "component": 4,
+        "variance_ratio": 0.0939
+      },
+      {
+        "component": 5,
+        "variance_ratio": 0.0897
+      },
+      {
+        "component": 6,
+        "variance_ratio": 0.069
+      },
+      {
+        "component": 7,
+        "variance_ratio": 0.0499
+      },
+      {
+        "component": 8,
+        "variance_ratio": 0.0453
+      }
+    ]
+  },
+  "feature_importance": [
     {
-      "word": "추천합니다",
-      "shap_value": 0.3155
+      "feature": "credit_score",
+      "importance": 1.1747
     },
     {
-      "word": "실망입니다",
-      "shap_value": 0.1562
+      "feature": "interest_rate",
+      "importance": 1.055
     },
     {
-      "word": "별로입니다",
-      "shap_value": 0.1331
+      "feature": "payment_history_score",
+      "importance": 0.9616
     },
     {
-      "word": "깔끔하다",
-      "shap_value": 0.1211
+      "feature": "debt_ratio",
+      "importance": 0.7786
     },
     {
-      "word": "좋은",
-      "shap_value": 0.1018
+      "feature": "num_credit_lines",
+      "importance": 0.644
+    },
+    {
+      "feature": "employment_years",
+      "importance": 0.5977
+    },
+    {
+      "feature": "annual_income",
+      "importance": 0.5422
+    },
+    {
+      "feature": "loan_amount",
+      "importance": 0.221
+    },
+    {
+      "feature": "age",
+      "importance": 0.1968
     }
   ],
-  "shap_top5_negative": [
-    {
-      "word": "맞고",
-      "shap_value": -0.0106
+  "clustering": {
+    "n_clusters": 3,
+    "cluster_counts": {
+      "0": 101,
+      "1": 30,
+      "2": 69
     },
-    {
-      "word": "사이즈",
-      "shap_value": -0.0106
-    },
-    {
-      "word": "만족합니다",
-      "shap_value": -0.0046
-    },
-    {
-      "word": "가성비",
-      "shap_value": -0.0045
-    },
-    {
-      "word": "품질",
-      "shap_value": -0.0036
-    }
-  ],
-  "business_summary": "머신러닝 모델은 규칙 기반 모델 대비 부정 리뷰 탐지율이 높아 고객 불만을 보다 정확히 식별합니다. 긍정 예측에는 '추천합니다' 등의 단어가, 부정 예측에는 '맞고' 등의 단어가 주요하게 작용합니다. 마케팅팀은 긍정 키워드를 홍보에 활용하고, 영업팀은 부정 키워드 중심으로 고객 불만 원인을 파악하여 서비스를 개선할 수 있습니다."
+    "inertia": 1080.0878
+  }
 }

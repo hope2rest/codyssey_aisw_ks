@@ -1,19 +1,115 @@
 {
-  "optimal_k": 35,
-  "cumulative_variance_at_k": 0.950775,
-  "reconstruction_mse": 0.04824,
-  "top_5_singular_values": [
-    99.673366,
-    83.66078,
-    78.648015,
-    73.235932,
-    62.823237
-  ],
-  "explained_variance_ratio_top5": [
-    0.202751,
-    0.142839,
-    0.126235,
-    0.109459,
-    0.080546
-  ]
+  "total_rows_raw": 205,
+  "total_rows_cleaned": 200,
+  "duplicates_removed": 5,
+  "missing_values_filled": 15,
+  "statistics": {
+    "age": {
+      "mean": 34.997,
+      "std": 10.16881,
+      "min": 5.0,
+      "max": 95.0,
+      "median": 35.6
+    },
+    "annual_income": {
+      "mean": 5303.4545,
+      "std": 2378.503731,
+      "min": 50.0,
+      "max": 25000.0,
+      "median": 5194.0
+    },
+    "spending_score": {
+      "mean": 48.4795,
+      "std": 21.459472,
+      "min": -20.0,
+      "max": 150.0,
+      "median": 48.7
+    },
+    "purchase_count": {
+      "mean": 10.57,
+      "std": 7.091904,
+      "min": 2.0,
+      "max": 100.0,
+      "median": 10.0
+    },
+    "avg_order_value": {
+      "mean": 33.66805,
+      "std": 36.175434,
+      "min": 1.0,
+      "max": 500.0,
+      "median": 31.83
+    },
+    "days_since_last": {
+      "mean": 34.795,
+      "std": 76.035669,
+      "min": 0.0,
+      "max": 999.0,
+      "median": 20.0
+    },
+    "total_spent": {
+      "mean": 374.2331,
+      "std": 469.644326,
+      "min": 0.0,
+      "max": 5451.42,
+      "median": 299.155
+    }
+  },
+  "outlier_counts_iqr": {
+    "age": 4,
+    "annual_income": 2,
+    "spending_score": 2,
+    "purchase_count": 2,
+    "avg_order_value": 1,
+    "days_since_last": 15,
+    "total_spent": 6
+  },
+  "outlier_counts_zscore": {
+    "age": 1,
+    "annual_income": 2,
+    "spending_score": 2,
+    "purchase_count": 1,
+    "avg_order_value": 1,
+    "days_since_last": 1,
+    "total_spent": 2
+  },
+  "standardized_mean_check": {
+    "age": 0.0,
+    "annual_income": 0.0,
+    "spending_score": -0.0,
+    "purchase_count": -0.0,
+    "avg_order_value": -0.0,
+    "days_since_last": -0.0,
+    "total_spent": 0.0
+  },
+  "standardized_std_check": {
+    "age": 1.0,
+    "annual_income": 1.0,
+    "spending_score": 1.0,
+    "purchase_count": 1.0,
+    "avg_order_value": 1.0,
+    "days_since_last": 1.0,
+    "total_spent": 1.0
+  },
+  "segments": {
+    "high_income_high_spend": {
+      "count": 47,
+      "mean_income": 7226.689362,
+      "mean_spending": 65.091489
+    },
+    "high_income_low_spend": {
+      "count": 56,
+      "mean_income": 6558.042857,
+      "mean_spending": 30.946429
+    },
+    "low_income_high_spend": {
+      "count": 54,
+      "mean_income": 3682.42963,
+      "mean_spending": 64.748148
+    },
+    "low_income_low_spend": {
+      "count": 43,
+      "mean_income": 3603.137209,
+      "mean_spending": 32.725581
+    }
+  }
 }

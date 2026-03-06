@@ -1,8 +1,8 @@
 {
-  "vocab_size": 287,
+  "vocab_size": 290,
   "tfidf_matrix_shape": [
     20,
-    287
+    290
   ],
   "search_results": [
     {
@@ -10,11 +10,11 @@
       "top3": [
         {
           "doc_index": 0,
-          "similarity": 0.400373
+          "similarity": 0.402384
         },
         {
           "doc_index": 18,
-          "similarity": 0.135865
+          "similarity": 0.136088
         },
         {
           "doc_index": 1,
@@ -27,7 +27,7 @@
       "top3": [
         {
           "doc_index": 2,
-          "similarity": 0.500039
+          "similarity": 0.502887
         },
         {
           "doc_index": 0,
@@ -48,7 +48,7 @@
         },
         {
           "doc_index": 12,
-          "similarity": 0.094978
+          "similarity": 0.095533
         },
         {
           "doc_index": 0,
@@ -60,15 +60,15 @@
       "query": "빅데이터 분석 하둡 스파크",
       "top3": [
         {
+          "doc_index": 7,
+          "similarity": 0.323069
+        },
+        {
           "doc_index": 14,
-          "similarity": 0.235518
+          "similarity": 0.166537
         },
         {
           "doc_index": 0,
-          "similarity": 0.0
-        },
-        {
-          "doc_index": 1,
           "similarity": 0.0
         }
       ]
@@ -90,5 +90,12 @@
         }
       ]
     }
-  ]
+  ],
+  "sentiment_accuracy": 1.0,
+  "sentiment_precision": 1.0,
+  "sentiment_recall": 1.0,
+  "sentiment_f1": 1.0,
+  "total_reviews": 30,
+  "positive_count": 15,
+  "negative_count": 15
 }
