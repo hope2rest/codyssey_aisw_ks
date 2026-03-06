@@ -1,8 +1,8 @@
-## 문항: 금융 리스크 예측 모델 고도화 및 예측 시스템 구현
+## 문항: 금융 리스크 예측 서비스
 
 ### 문제
 
-대출 고객 데이터에 대해 ML 기반 리스크 예측 모델을 구축하고, PCA/K-Means/Feature Importance로 모델을 해석하며, 신규 고객 리스크 판정 기능을 포함한 예측 시스템을 구현하세요.
+대출 고객 데이터에 대해 ML 기반 리스크 예측 모델을 구축하고, PCA/K-Means/Feature Importance로 모델을 해석하며, 대시보드를 통한 시각화와 신규 고객 리스크 판정 서비스를 구현하세요.
 
 ### 제공 데이터
 
@@ -35,13 +35,20 @@ data/
 
 ### 프로젝트 구조
 
-| 파일 | 역할 | 핵심 함수 |
-|------|------|----------|
-| `preprocessor.py` | 데이터 로드, 결측 처리, 인코딩, 스케일링 | `load_data()`, `handle_missing()`, `encode_categoricals()`, `scale_features()` |
-| `model.py` | 학습/테스트 분할, PCA, 모델 학습, 평가 | `split_data()`, `apply_pca()`, `train_model()`, `evaluate_model()` |
-| `interpreter.py` | 모델 해석, PCA 분석, 클러스터링 | `get_feature_importance()`, `get_pca_variance()`, `cluster_features()` |
-| `predictor.py` | 신규 고객 리스크 판정 서비스 | `load_new_customers()`, `predict_risk()`, `classify_risk_level()`, `generate_report()` |
-| `main.py` | 전체 파이프라인 실행, 결과 저장 | `main()` |
+| 폴더/파일 | 역할 | 핵심 함수 |
+|-----------|------|----------|
+| `core/preprocessor.py` | 데이터 로드, 결측 처리, 인코딩, 스케일링 | `load_data()`, `handle_missing()`, `encode_categoricals()`, `scale_features()` |
+| `core/model.py` | 학습/테스트 분할, PCA, 모델 학습, 평가 | `split_data()`, `apply_pca()`, `train_model()`, `evaluate_model()` |
+| `core/interpreter.py` | 모델 해석, PCA 분석, 클러스터링 | `get_feature_importance()`, `get_pca_variance()`, `cluster_features()` |
+| `core/predictor.py` | 신규 고객 리스크 판정 서비스 | `load_new_customers()`, `predict_risk()`, `classify_risk_level()`, `generate_report()` |
+| `core/main.py` | 전체 파이프라인 실행, 결과 저장 | `main()` |
+| `charts/risk_charts.py` | 리스크 분포, 모델 비교 시각화 | `save_risk_distribution()`, `save_model_comparison()` |
+| `charts/feature_charts.py` | Feature Importance 시각화 | `save_feature_importance()` |
+| `charts/pca_charts.py` | PCA 산점도, 분산 비율 시각화 | `save_pca_scatter()`, `save_pca_variance()` |
+| `charts/cluster_charts.py` | K-Means 클러스터 시각화 | `save_cluster_scatter()` |
+| `dashboard/app.py` | Streamlit 대시보드 메인 앱 | — |
+| `dashboard/pages/` | 개요, 예측, 해석, 고객 판정 페이지 | `render_overview()`, `render_predictions()`, `render_model_analysis()`, `classify_single_customer()` |
+| `dashboard/components/` | 재사용 UI 컴포넌트 | `validate_customer_input()`, `get_risk_color()`, `generate_all_charts()` |
 
 ### 구현 요구사항
 
@@ -82,6 +89,44 @@ data/
 17. LogisticRegression과 RidgeClassifier 두 모델을 각각 학습/평가합니다.
 18. 최적 모델로 신규 고객 리스크 판정을 수행합니다.
 19. `result_q5.json` 파일로 결과를 저장합니다.
+
+#### Part F: charts/ - 시각화 모듈
+
+#### 20. `save_risk_distribution(distribution, output_path)`
+- 안전/주의/위험 분포를 파이 차트로 저장합니다.
+
+#### 21. `save_model_comparison(logistic_metrics, ridge_metrics, output_path)`
+- Logistic Regression과 Ridge Classifier의 성능을 비교 바 차트로 저장합니다.
+
+#### 22. `save_feature_importance(importance_list, output_path)`
+- Feature Importance를 수평 바 차트로 저장합니다.
+
+#### 23. `save_pca_scatter(X_pca, y, output_path)`
+- PCA 2D 산점도를 저장합니다 (녹색=안전, 빨간색=위험).
+
+#### 24. `save_pca_variance(variance_ratios, output_path)`
+- PCA 분산 설명 비율 바 차트와 누적 곡선을 저장합니다.
+
+#### 25. `save_cluster_scatter(X_pca, cluster_labels, output_path)`
+- K-Means 클러스터링 결과를 2D 산점도로 저장합니다.
+
+#### Part G: dashboard/ - 대시보드 서비스
+
+#### 26. `dashboard/app.py`
+- Streamlit 기반 대시보드 메인 앱을 구현합니다.
+- 개요, 모델 성능, 모델 해석, 고객 판정 4개 탭으로 구성합니다.
+- `result_q5.json`을 로드하여 결과를 시각적으로 표시합니다.
+
+#### 27. `dashboard/pages/`
+- `overview.py`: 전처리 정보를 렌더링합니다.
+- `prediction.py`: 고객 판정 결과를 렌더링합니다.
+- `analysis.py`: 모델 해석 정보를 렌더링합니다.
+- `customer.py`: 단일 고객 리스크 등급을 판정합니다.
+
+#### 28. `dashboard/components/`
+- `input_form.py`: 고객 정보 입력 검증 컴포넌트입니다.
+- `risk_gauge.py`: 리스크 등급별 색상 및 요약 컴포넌트입니다.
+- `chart_builder.py`: 모든 차트를 일괄 생성하는 유틸리티입니다.
 
 ### 출력 형식
 
@@ -147,20 +192,45 @@ data/
 
 ```
 submission/
-├── src/
+├── core/
 │   ├── preprocessor.py
 │   ├── model.py
 │   ├── interpreter.py
 │   ├── predictor.py
 │   └── main.py
+├── dashboard/
+│   ├── app.py
+│   ├── pages/
+│   │   ├── overview.py
+│   │   ├── prediction.py
+│   │   ├── analysis.py
+│   │   └── customer.py
+│   ├── components/
+│   │   ├── input_form.py
+│   │   ├── risk_gauge.py
+│   │   └── chart_builder.py
+│   └── assets/
+│       └── style.css
+├── charts/
+│   ├── risk_charts.py
+│   ├── feature_charts.py
+│   ├── pca_charts.py
+│   └── cluster_charts.py
 ├── config/
 │   └── config.json
 ├── models/
 │   └── model_info.json
-├── logs/
-│   └── prediction_log.json
-└── output/
-    └── result_q5.json
+├── output/
+│   ├── result_q5.json
+│   └── charts/
+│       ├── risk_distribution.png
+│       ├── model_comparison.png
+│       ├── feature_importance.png
+│       ├── pca_scatter.png
+│       ├── pca_variance.png
+│       └── cluster_scatter.png
+└── requirements.txt
 ```
 
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.
+- `streamlit run dashboard/app.py`로 대시보드를 실행할 수 있습니다.

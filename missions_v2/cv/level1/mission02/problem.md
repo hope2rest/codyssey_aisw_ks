@@ -1,4 +1,4 @@
-## 문항: TF-IDF 기반 도서 검색 및 추천 서비스 구현
+## 문항: 도서 검색 및 추천 서비스
 
 ### 문제
 
@@ -25,12 +25,18 @@ data/
 
 ### 프로젝트 구조
 
-| 파일 | 역할 | 핵심 함수 |
-|------|------|----------|
-| `search_engine.py` | 전처리, TF-IDF 행렬, 코사인 유사도, 검색 | `preprocess()`, `compute_tf()`, `compute_idf()`, `build_tfidf_matrix()`, `cosine_similarity()`, `search()` |
-| `recommender.py` | 도서 간 유사도 기반 추천 | `compute_book_similarity()`, `recommend_books()`, `recommend_by_category()` |
-| `sentiment.py` | 규칙 기반 감성 분석, 평가 지표 | `rule_based_predict()`, `compute_metrics()` |
-| `main.py` | 전체 서비스 파이프라인 실행 | `main()` |
+| 폴더/파일 | 역할 | 핵심 함수 |
+|-----------|------|----------|
+| `core/search_engine.py` | 전처리, TF-IDF 행렬, 코사인 유사도, 검색 | `preprocess()`, `compute_tf()`, `compute_idf()`, `build_tfidf_matrix()`, `cosine_similarity()`, `search()` |
+| `core/recommender.py` | 도서 간 유사도 기반 추천 | `compute_book_similarity()`, `recommend_books()`, `recommend_by_category()` |
+| `core/sentiment.py` | 규칙 기반 감성 분석, 평가 지표 | `rule_based_predict()`, `compute_metrics()` |
+| `core/main.py` | 전체 서비스 파이프라인 실행 | `main()` |
+| `charts/search_charts.py` | 검색 결과 시각화 | `save_search_results_chart()` |
+| `charts/recommend_charts.py` | 추천 결과 시각화 | `save_similarity_heatmap()`, `save_recommendation_chart()` |
+| `charts/sentiment_charts.py` | 감성 분석 시각화 | `save_sentiment_distribution()`, `save_sentiment_metrics_chart()` |
+| `dashboard/app.py` | Streamlit 대시보드 메인 앱 | — |
+| `dashboard/pages/` | 검색, 추천, 감성 분석 페이지 | `render_search_results()`, `render_recommendations()`, `render_sentiment_summary()` |
+| `dashboard/components/` | 재사용 UI 컴포넌트 | `validate_query()`, `format_book_card()`, `generate_all_charts()` |
 
 ### 구현 요구사항
 
@@ -105,6 +111,41 @@ data/
 - 40개 리뷰에 대해 감성 분석 후 평가 지표를 계산합니다.
 - `result_q2.json` 파일로 결과를 저장합니다.
 
+#### Part E: charts/ - 시각화 모듈
+
+#### 13. `save_search_results_chart(search_results, output_path)`
+- 검색 쿼리별 상위 3건의 유사도를 수평 바 차트로 저장합니다.
+- `matplotlib`을 사용하여 PNG 파일로 저장합니다.
+
+#### 14. `save_similarity_heatmap(sim_matrix, titles, output_path)`
+- 도서 간 유사도 행렬을 히트맵으로 저장합니다.
+
+#### 15. `save_recommendation_chart(recommendations, target_title, output_path)`
+- 추천 도서 상위 5건의 유사도를 수평 바 차트로 저장합니다.
+
+#### 16. `save_sentiment_distribution(positive_count, negative_count, output_path)`
+- 긍정/부정 분포를 파이 차트로 저장합니다.
+
+#### 17. `save_sentiment_metrics_chart(metrics, output_path)`
+- 감성 분석 평가 지표(Accuracy, Precision, Recall, F1)를 바 차트로 저장합니다.
+
+#### Part F: dashboard/ - 대시보드 서비스
+
+#### 18. `dashboard/app.py`
+- Streamlit 기반 대시보드 메인 앱을 구현합니다.
+- 검색, 추천, 감성 분석 3개 탭으로 구성합니다.
+- `result_q2.json`을 로드하여 결과를 시각적으로 표시합니다.
+
+#### 19. `dashboard/pages/`
+- `search.py`: 검색 결과를 렌더링 가능한 데이터로 변환합니다.
+- `recommend.py`: 추천 결과를 렌더링 가능한 데이터로 변환합니다.
+- `sentiment.py`: 감성 분석 요약을 렌더링 가능한 데이터로 변환합니다.
+
+#### 20. `dashboard/components/`
+- `search_bar.py`: 검색 쿼리 검증 컴포넌트입니다.
+- `book_card.py`: 도서 정보 카드 형태 컴포넌트입니다.
+- `chart_builder.py`: 모든 차트를 일괄 생성하는 유틸리티입니다.
+
 ### 출력 형식
 
 `result_q2.json` 파일로 다음 구조를 저장합니다:
@@ -157,17 +198,39 @@ data/
 
 ```
 submission/
-├── src/
+├── core/
 │   ├── search_engine.py
 │   ├── recommender.py
 │   ├── sentiment.py
 │   └── main.py
+├── dashboard/
+│   ├── app.py
+│   ├── pages/
+│   │   ├── search.py
+│   │   ├── recommend.py
+│   │   └── sentiment.py
+│   ├── components/
+│   │   ├── search_bar.py
+│   │   ├── book_card.py
+│   │   └── chart_builder.py
+│   └── assets/
+│       └── style.css
+├── charts/
+│   ├── search_charts.py
+│   ├── recommend_charts.py
+│   └── sentiment_charts.py
 ├── config/
 │   └── config.json
-├── logs/
-│   └── search_log.json
-└── output/
-    └── result_q2.json
+├── output/
+│   ├── result_q2.json
+│   └── charts/
+│       ├── search_results.png
+│       ├── similarity_heatmap.png
+│       ├── recommendation_top5.png
+│       ├── sentiment_distribution.png
+│       └── sentiment_metrics.png
+└── requirements.txt
 ```
 
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.
+- `streamlit run dashboard/app.py`로 대시보드를 실행할 수 있습니다.

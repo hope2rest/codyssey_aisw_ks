@@ -1,4 +1,4 @@
-## 문항 5 정답지 — 금융 리스크 예측 모델 고도화 및 예측 시스템
+## 문항 5 정답지 — 금융 리스크 예측 서비스
 
 ### 정답 코드
 
@@ -190,36 +190,198 @@ def generate_report(loan_ids, probabilities, risk_levels):
     return report
 ```
 
+#### charts/risk_charts.py
+
+```python
+"""리스크 분포 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+def save_risk_distribution(distribution, output_path):
+    """안전/주의/위험 분포 파이 차트를 저장한다."""
+    labels = list(distribution.keys())
+    sizes = list(distribution.values())
+    colors = ["#4CAF50", "#FF9800", "#F44336"]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    wedges, texts, autotexts = ax.pie(
+        sizes, labels=labels, colors=colors,
+        autopct="%1.1f%%", startangle=90,
+        textprops={"fontsize": 12}
+    )
+    ax.set_title("신규 고객 리스크 분포", fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+
+
+def save_model_comparison(logistic_metrics, ridge_metrics, output_path):
+    """모델별 성능 비교 바 차트를 저장한다."""
+    metrics = ["accuracy", "precision", "recall", "f1_macro"]
+    labels = ["Accuracy", "Precision", "Recall", "F1 Macro"]
+    logistic_vals = [logistic_metrics[m] for m in metrics]
+    ridge_vals = [ridge_metrics[m] for m in metrics]
+    x = range(len(labels))
+    width = 0.35
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars1 = ax.bar([i - width/2 for i in x], logistic_vals, width, label="Logistic", color="#2196F3")
+    bars2 = ax.bar([i + width/2 for i in x], ridge_vals, width, label="Ridge", color="#FF5722")
+    ax.set_ylabel("점수")
+    ax.set_title("모델 성능 비교", fontsize=14)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_ylim(0, 1.1)
+    ax.legend()
+    for bars in [bars1, bars2]:
+        for bar in bars:
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                    f"{bar.get_height():.3f}", ha="center", fontsize=9)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
+#### charts/feature_charts.py
+
+```python
+"""Feature Importance 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def save_feature_importance(importance_list, output_path):
+    """Feature Importance 수평 바 차트를 저장한다."""
+    features = [item["feature"] for item in importance_list]
+    values = [item["importance"] for item in importance_list]
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.8, len(features)))
+    bars = ax.barh(features[::-1], values[::-1], color=colors[::-1])
+    ax.set_xlabel("중요도 (|coefficient|)")
+    ax.set_title("Feature Importance", fontsize=14)
+    for bar, val in zip(bars, values[::-1]):
+        ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height()/2,
+                f"{val:.4f}", va="center", fontsize=9)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
+#### charts/pca_charts.py
+
+```python
+"""PCA 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def save_pca_scatter(X_pca, y, output_path):
+    """PCA 2D 산점도를 저장한다."""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    colors = ["#4CAF50" if label == 0 else "#F44336" for label in y]
+    ax.scatter(X_pca[:, 0], X_pca[:, 1], c=colors, alpha=0.6, edgecolors="k", linewidths=0.5)
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title("PCA 2D 산점도 (녹색=안전, 빨간색=위험)", fontsize=13)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+
+
+def save_pca_variance(variance_ratios, output_path):
+    """PCA 분산 설명 비율 바 차트를 저장한다."""
+    components = [item["component"] for item in variance_ratios]
+    ratios = [item["variance_ratio"] for item in variance_ratios]
+    cumulative = np.cumsum(ratios)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(components, ratios, color="#2196F3", alpha=0.7, label="개별 분산")
+    ax.plot(components, cumulative, "ro-", label="누적 분산")
+    ax.axhline(y=0.95, color="gray", linestyle="--", alpha=0.5, label="95% 기준선")
+    ax.set_xlabel("주성분")
+    ax.set_ylabel("분산 설명 비율")
+    ax.set_title("PCA 분산 설명 비율", fontsize=14)
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
+#### charts/cluster_charts.py
+
+```python
+"""K-Means 클러스터 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def save_cluster_scatter(X_pca, cluster_labels, output_path):
+    """K-Means 클러스터 2D 산점도를 저장한다."""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    unique_labels = sorted(set(cluster_labels))
+    colors = plt.cm.Set1(np.linspace(0, 0.5, len(unique_labels)))
+    for label, color in zip(unique_labels, colors):
+        mask = [cl == label for cl in cluster_labels]
+        ax.scatter(X_pca[mask, 0], X_pca[mask, 1],
+                   c=[color], label=f"Cluster {label}", alpha=0.6,
+                   edgecolors="k", linewidths=0.5)
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_title("K-Means 클러스터링 결과", fontsize=13)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
 ### 정답 체크리스트
 
 | 번호 | 체크 항목 | 배점 | 검증 방법 |
 |------|----------|------|----------|
-| 1 | preprocessor.py 필수 함수 4개 정의 | 3점 | AST 자동 |
-| 2 | model.py 필수 함수 4개 정의 | 3점 | AST 자동 |
-| 3 | interpreter.py 필수 함수 3개 정의 | 3점 | AST 자동 |
-| 4 | predictor.py 필수 함수 4개 정의 | 3점 | AST 자동 |
-| 5 | 데이터 로드 (loan_id 제거, X/y 분리) | 5점 | import 자동 |
-| 6 | 결측 처리 (중앙값 대체) | 5점 | import 자동 |
-| 7 | StandardScaler 표준화 | 3점 | import 자동 |
-| 8 | train_test_split (70/30, stratify, random_state=42) | 5점 | import 자동 |
-| 9 | PCA 적용 (95% 분산 설명) | 5점 | import 자동 |
-| 10 | LogisticRegression 학습 및 평가 | 5점 | import 자동 |
-| 11 | RidgeClassifier 학습 및 평가 | 5점 | import 자동 |
-| 12 | Feature Importance (절댓값 내림차순) | 5점 | import 자동 |
-| 13 | PCA Variance Ratio 반환 | 3점 | import 자동 |
-| 14 | KMeans 클러스터링 (n_clusters=3) | 5점 | import 자동 |
-| 15 | 신규 고객 데이터 로드 및 전처리 | 5점 | import 자동 |
-| 16 | 리스크 확률 예측 (predict_proba) | 5점 | import 자동 |
-| 17 | 3단계 리스크 등급 분류 (안전/주의/위험) | 5점 | import 자동 |
-| 18 | 고객별 판정 리포트 생성 | 3점 | import 자동 |
-| 19 | result_q5.json 필수 키 확인 | 3점 | JSON 자동 |
-| 20 | 모델 accuracy > 0.7 | 5점 | JSON 자동 |
-| 21 | PCA 분산 설명 > 0.9 | 3점 | JSON 자동 |
-| 22 | 클러스터 수 = 3 | 3점 | JSON 자동 |
-| 23 | 신규 고객 예측 20명, 리스크 분포 포함 | 5점 | JSON 자동 |
+| 1 | preprocessor.py 필수 함수 4개 정의 | 2점 | AST 자동 |
+| 2 | model.py 필수 함수 4개 정의 | 2점 | AST 자동 |
+| 3 | interpreter.py 필수 함수 3개 정의 | 2점 | AST 자동 |
+| 4 | predictor.py 필수 함수 4개 정의 | 2점 | AST 자동 |
+| 5 | main.py에 main() 함수 정의 | 2점 | AST 자동 |
+| 6 | 데이터 로드 (loan_id 제거, X/y 분리, shape=(200,9)) | 4점 | import 자동 |
+| 7 | 결측 처리 (중앙값 대체, 결측 0건) | 4점 | import 자동 |
+| 8 | 인코딩 처리 (DataFrame 반환, shape 유지) | 2점 | import 자동 |
+| 9 | StandardScaler 표준화 (평균 ~0) | 4점 | import 자동 |
+| 10 | train_test_split (70/30, stratify) | 4점 | import 자동 |
+| 11 | PCA 적용 (95% 분산, 차원 축소) | 4점 | import 자동 |
+| 12 | LogisticRegression 학습 및 평가 (accuracy >= 0.7) | 4점 | import 자동 |
+| 13 | RidgeClassifier 학습 및 평가 (accuracy >= 0.7) | 4점 | import 자동 |
+| 14 | Feature Importance (9개, 절댓값 내림차순) | 3점 | import 자동 |
+| 15 | PCA Variance Ratio (총 >= 0.95) | 3점 | import 자동 |
+| 16 | KMeans 클러스터링 (3개, labels=200, inertia>0) | 3점 | import 자동 |
+| 17 | 신규 고객 데이터 로드 (20행, NaN 없음) | 3점 | import 자동 |
+| 18 | 리스크 확률 예측 + 등급 분류 (안전/주의/위험) | 3점 | import 자동 |
+| 19 | 고객별 판정 리포트 생성 | 2점 | import 자동 |
+| 20 | result_q5.json 필수 키 확인 | 2점 | JSON 자동 |
+| 21 | 전처리 결과값 검증 (shape, missing) | 3점 | JSON 자동 |
+| 22 | 모델 성능 범위 검증 (0~1, accuracy >= 0.7) | 3점 | JSON 자동 |
+| 23 | 신규 고객 예측 20명, 리스크 분포 포함 | 3점 | JSON 자동 |
+| 24 | dashboard/ 폴더 존재 | 2점 | 구조 자동 |
+| 25 | charts/ 폴더 존재 | 2점 | 구조 자동 |
+| 26 | dashboard/app.py 존재 | 2점 | 구조 자동 |
+| 27 | dashboard/pages/ 필수 파일 존재 (overview.py, prediction.py, analysis.py, customer.py) | 3점 | 구조 자동 |
+| 28 | dashboard/components/ 필수 파일 존재 (input_form.py, risk_gauge.py, chart_builder.py) | 3점 | 구조 자동 |
+| 29 | charts/ 필수 모듈 존재 (risk_charts.py, feature_charts.py, pca_charts.py, cluster_charts.py) | 3점 | 구조 자동 |
+| 30 | risk_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 31 | feature_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 32 | pca_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 33 | cluster_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 34 | 차트 생성 통합 테스트 (PNG 파일 생성 및 크기 > 0) | 4점 | import 자동 |
 
-- Pass 기준: 총 100점 중 100점 (23개 전체 정답)
-- AI 트랩: 불균형 데이터에서 stratify 누락, PCA를 test에도 fit (data leakage), RidgeClassifier에 predict_proba 없음 (decision_function -> sigmoid 변환 필요), 최적 모델 선택 기준 f1_macro (accuracy 아님), conservative_threshold와 default_threshold 적용 순서 혼동
+- Pass 기준: 총 100점 중 100점 (34개 전체 정답)
+- AI 트랩: 불균형 데이터에서 stratify 누락, PCA를 test에도 fit (data leakage), RidgeClassifier에 predict_proba 없음 (decision_function -> sigmoid 변환 필요), 최적 모델 선택 기준 f1_macro (accuracy 아님), conservative_threshold와 default_threshold 적용 순서 혼동, matplotlib backend 미설정
 
 ### 데이터 타입
 
@@ -247,3 +409,6 @@ def generate_report(loan_ids, probabilities, risk_levels):
 | 클러스터링 (KMeans) | test_cluster_features |
 | 신규 고객 리스크 판정 | test_load_new_customers, test_predict_and_classify, test_generate_report |
 | 파이프라인 통합 | test_result_structure, test_model_accuracy, test_pca_variance, test_clustering, test_new_customer_predictions |
+| 대시보드 구조 설계 | test_dashboard_folder_exists, test_charts_folder_exists, test_dashboard_app_exists |
+| 대시보드 페이지/컴포넌트 | test_dashboard_pages_exist, test_dashboard_components_exist |
+| 시각화 모듈 (matplotlib) | test_risk_charts_functions, test_feature_charts_functions, test_pca_charts_functions, test_cluster_charts_functions, test_chart_generation |

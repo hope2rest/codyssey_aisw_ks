@@ -1,4 +1,4 @@
-## 문항 2 정답지 — TF-IDF 기반 도서 검색 및 추천 서비스
+## 문항 2 정답지 — 도서 검색 및 추천 서비스
 
 ### 정답 코드
 
@@ -212,33 +212,164 @@ def compute_metrics(predictions: list, labels: list) -> dict:
     }
 ```
 
+#### charts/search_charts.py
+
+```python
+"""검색 결과 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def save_search_results_chart(search_results, output_path):
+    """검색 쿼리별 상위 3건의 유사도를 바 차트로 저장한다."""
+    n = len(search_results)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 3 * n))
+    if n == 1:
+        axes = [axes]
+    for ax, sr in zip(axes, search_results):
+        titles = [item["title"][:20] for item in sr["top3"]]
+        sims = [item["similarity"] for item in sr["top3"]]
+        bars = ax.barh(titles, sims, color="#4CAF50")
+        ax.set_title(f'검색: "{sr["query"][:30]}"', fontsize=11)
+        ax.set_xlabel("유사도")
+        ax.set_xlim(0, 1)
+        for bar, val in zip(bars, sims):
+            ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height() / 2,
+                    f"{val:.4f}", va="center", fontsize=9)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
+#### charts/recommend_charts.py
+
+```python
+"""추천 결과 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def save_similarity_heatmap(sim_matrix, titles, output_path):
+    """도서 유사도 행렬 히트맵을 저장한다."""
+    n = min(len(titles), 15)
+    sub_matrix = sim_matrix[:n, :n]
+    sub_titles = [t[:12] for t in titles[:n]]
+    fig, ax = plt.subplots(figsize=(10, 8))
+    im = ax.imshow(sub_matrix, cmap="YlOrRd", vmin=0, vmax=1)
+    ax.set_xticks(range(n))
+    ax.set_yticks(range(n))
+    ax.set_xticklabels(sub_titles, rotation=45, ha="right", fontsize=8)
+    ax.set_yticklabels(sub_titles, fontsize=8)
+    ax.set_title("도서 유사도 히트맵", fontsize=14)
+    plt.colorbar(im, ax=ax, label="코사인 유사도")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+
+
+def save_recommendation_chart(recommendations, target_title, output_path):
+    """추천 도서 상위 5건의 유사도를 바 차트로 저장한다."""
+    titles = [r["title"][:20] for r in recommendations]
+    sims = [r["similarity"] for r in recommendations]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(titles)))
+    bars = ax.barh(titles[::-1], sims[::-1], color=colors[::-1])
+    ax.set_title(f'"{target_title[:20]}" 추천 도서 Top 5', fontsize=13)
+    ax.set_xlabel("유사도")
+    ax.set_xlim(0, 1)
+    for bar, val in zip(bars, sims[::-1]):
+        ax.text(bar.get_width() + 0.01, bar.get_y() + bar.get_height() / 2,
+                f"{val:.4f}", va="center", fontsize=9)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
+#### charts/sentiment_charts.py
+
+```python
+"""감성 분석 시각화 모듈"""
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+def save_sentiment_distribution(positive_count, negative_count, output_path):
+    """긍정/부정 분포 파이 차트를 저장한다."""
+    labels = ["긍정", "부정"]
+    sizes = [positive_count, negative_count]
+    colors = ["#4CAF50", "#F44336"]
+    explode = (0.05, 0.05)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    wedges, texts, autotexts = ax.pie(
+        sizes, explode=explode, labels=labels, colors=colors,
+        autopct="%1.1f%%", startangle=90, textprops={"fontsize": 12}
+    )
+    ax.set_title("감성 분석 결과 분포", fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+
+
+def save_sentiment_metrics_chart(metrics, output_path):
+    """감성 분석 평가 지표 바 차트를 저장한다."""
+    names = ["Accuracy", "Precision", "Recall", "F1"]
+    values = [metrics["accuracy"], metrics["precision"],
+              metrics["recall"], metrics["f1"]]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(names, values, color=["#2196F3", "#FF9800", "#9C27B0", "#009688"])
+    ax.set_ylim(0, 1.1)
+    ax.set_ylabel("점수")
+    ax.set_title("감성 분석 평가 지표", fontsize=14)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
+                f"{val:.4f}", ha="center", fontsize=10)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
+```
+
 ### 정답 체크리스트
 
 | 번호 | 체크 항목 | 배점 | 검증 방법 |
 |------|----------|------|----------|
-| 1 | search_engine.py 필수 함수 6개 정의 | 5점 | AST 자동 |
-| 2 | recommender.py 필수 함수 3개 정의 | 3점 | AST 자동 |
-| 3 | sentiment.py 필수 함수 2개 정의 | 2점 | AST 자동 |
-| 4 | main.py에 main 함수 정의 | 2점 | AST 자동 |
-| 5 | 전처리: 소문자 변환, 특수문자 제거, 불용어 제거, 길이 1 이하 제거 | 5점 | import 자동 |
-| 6 | TF 계산: count(t) / total_words | 5점 | import 자동 |
-| 7 | Smooth IDF: log((N+1)/(df+1)) + 1 | 5점 | import 자동 |
-| 8 | TF-IDF 행렬 shape (30 x vocab_size) | 5점 | import 자동 |
-| 9 | 코사인 유사도 범위 (0~1), 영벡터 처리 | 5점 | import 자동 |
-| 10 | 검색 결과 top_k 반환 (유사도 내림차순) | 5점 | import 자동 |
-| 11 | 도서 유사도 행렬 (NxN), 대각선 1.0 | 5점 | import 자동 |
-| 12 | 도서 추천 (자기 자신 제외, top_k) | 5점 | import 자동 |
-| 13 | 카테고리별 추천 (동일 카테고리 내) | 5점 | import 자동 |
-| 14 | 감성 분석: 부정어/강조어 처리 | 5점 | import 자동 |
-| 15 | 평가 지표: accuracy, precision, recall, f1 | 5점 | import 자동 |
-| 16 | result_q2.json 필수 키 확인 | 3점 | JSON 자동 |
-| 17 | 검색 결과 구조 (query, top3) | 5점 | JSON 자동 |
-| 18 | 추천 결과 구조 (target_book, top5_similar, same_category_top3) | 5점 | JSON 자동 |
-| 19 | 감성 분석 accuracy > 0.5 | 5점 | JSON 자동 |
-| 20 | 전체 리뷰 수 = 40 | 5점 | JSON 자동 |
+| 1 | core/ 필수 파일 4개 존재 (search_engine.py, recommender.py, sentiment.py, main.py) | 3점 | AST 자동 |
+| 2 | search_engine.py 필수 함수 6개 정의 | 3점 | AST 자동 |
+| 3 | recommender.py 필수 함수 3개 정의 | 3점 | AST 자동 |
+| 4 | sentiment.py 필수 함수 2개 정의 | 2점 | AST 자동 |
+| 5 | sklearn/scipy 사용 금지 | 2점 | AST 자동 |
+| 6 | 전처리: 소문자 변환, 특수문자 제거, 불용어 제거, 길이 1 이하 제거 | 4점 | import 자동 |
+| 7 | NFC 유니코드 정규화 | 3점 | import 자동 |
+| 8 | 코사인 유사도: 직교 벡터 = 0 | 3점 | import 자동 |
+| 9 | 코사인 유사도: 동일 벡터 = 1 | 3점 | import 자동 |
+| 10 | 코사인 유사도: 영벡터 처리 = 0.0 | 3점 | import 자동 |
+| 11 | 유사도 행렬 shape (NxN), 대각선 1.0 | 4점 | import 자동 |
+| 12 | 도서 추천 (자기 자신 제외, top_k) | 3점 | import 자동 |
+| 13 | 감성 분석: 긍정 리뷰 정확 판정 | 3점 | import 자동 |
+| 14 | 감성 분석: 부정 리뷰 정확 판정 | 3점 | import 자동 |
+| 15 | 감성 분석: 부정어 처리 ("안 좋다" → 부정) | 3점 | import 자동 |
+| 16 | 평가 지표: accuracy 계산 정확 | 3점 | import 자동 |
+| 17 | result_q2.json 필수 키 확인 | 3점 | JSON 자동 |
+| 18 | 검색 결과 정량적 검증 (문서 30, 리뷰 40, 쿼리 5, accuracy >= 0.7) | 4점 | JSON 자동 |
+| 19 | 추천 결과 구조 (target_book, top5_similar=5, same_category_top3=3) | 4점 | JSON 자동 |
+| 20 | 검색 결과에 title 포함 확인 | 3점 | JSON 자동 |
+| 21 | dashboard/ 폴더 존재 | 2점 | 구조 자동 |
+| 22 | charts/ 폴더 존재 | 2점 | 구조 자동 |
+| 23 | dashboard/app.py 존재 | 2점 | 구조 자동 |
+| 24 | dashboard/pages/ 필수 파일 존재 (search.py, recommend.py, sentiment.py) | 3점 | 구조 자동 |
+| 25 | dashboard/components/ 필수 파일 존재 (search_bar.py, book_card.py, chart_builder.py) | 3점 | 구조 자동 |
+| 26 | charts/ 필수 모듈 존재 (search_charts.py, recommend_charts.py, sentiment_charts.py) | 3점 | 구조 자동 |
+| 27 | search_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 28 | recommend_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 29 | sentiment_charts.py 필수 함수 확인 | 2점 | AST 자동 |
+| 30 | 차트 생성 통합 테스트 (PNG 파일 생성 및 크기 > 0) | 4점 | import 자동 |
 
-- Pass 기준: 총 100점 중 100점 (20개 전체 정답)
-- AI 트랩: Smooth IDF 수식 오류 (log 대신 log10), 코사인 유사도 영벡터 나눗셈, 부정어 처리 순서, 강조어 배수 적용 위치, 전처리 시 유니코드 NFC 정규화 누락
+- Pass 기준: 총 100점 중 100점 (30개 전체 정답)
+- AI 트랩: Smooth IDF 수식 오류 (log 대신 log10), 코사인 유사도 영벡터 나눗셈, 부정어 처리 순서, 강조어 배수 적용 위치, 전처리 시 유니코드 NFC 정규화 누락, matplotlib backend 미설정
 
 ### 데이터 타입
 
@@ -265,3 +396,6 @@ def compute_metrics(predictions: list, labels: list) -> dict:
 | 규칙 기반 감성 분석 | test_sentiment_positive, test_sentiment_negative, test_sentiment_negation |
 | 분류 평가 지표 | test_compute_metrics |
 | 파이프라인 통합 | test_result_structure, test_search_results, test_recommendation, test_sentiment_accuracy |
+| 대시보드 구조 설계 | test_dashboard_folder_exists, test_charts_folder_exists, test_dashboard_app_exists |
+| 대시보드 페이지/컴포넌트 | test_dashboard_pages_exist, test_dashboard_components_exist |
+| 시각화 모듈 (matplotlib) | test_search_charts_functions, test_recommend_charts_functions, test_sentiment_charts_functions, test_chart_generation |
