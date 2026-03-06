@@ -1,55 +1,219 @@
 {
-  "xor_final_loss": 0.047196,
-  "xor_predictions": [
-    [
-      0.051127
+  "preprocessing": {
+    "original_shape": [
+      200,
+      9
     ],
-    [
-      0.938304
-    ],
-    [
-      0.971821
-    ],
-    [
-      0.042004
+    "missing_values_before": 10,
+    "missing_values_after": 0,
+    "scaled_mean_abs_max": 0.0
+  },
+  "model_logistic": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
+  },
+  "model_ridge": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
+  },
+  "best_model": "logistic",
+  "pca": {
+    "n_components_selected": 8,
+    "total_variance_explained": 0.966,
+    "variance_ratios": [
+      {
+        "component": 1,
+        "variance_ratio": 0.3858
+      },
+      {
+        "component": 2,
+        "variance_ratio": 0.1176
+      },
+      {
+        "component": 3,
+        "variance_ratio": 0.1148
+      },
+      {
+        "component": 4,
+        "variance_ratio": 0.0939
+      },
+      {
+        "component": 5,
+        "variance_ratio": 0.0897
+      },
+      {
+        "component": 6,
+        "variance_ratio": 0.069
+      },
+      {
+        "component": 7,
+        "variance_ratio": 0.0499
+      },
+      {
+        "component": 8,
+        "variance_ratio": 0.0453
+      }
     ]
+  },
+  "feature_importance": [
+    {
+      "feature": "credit_score",
+      "importance": 1.1747
+    },
+    {
+      "feature": "interest_rate",
+      "importance": 1.055
+    },
+    {
+      "feature": "payment_history_score",
+      "importance": 0.9616
+    },
+    {
+      "feature": "debt_ratio",
+      "importance": 0.7786
+    },
+    {
+      "feature": "num_credit_lines",
+      "importance": 0.644
+    },
+    {
+      "feature": "employment_years",
+      "importance": 0.5977
+    },
+    {
+      "feature": "annual_income",
+      "importance": 0.5422
+    },
+    {
+      "feature": "loan_amount",
+      "importance": 0.221
+    },
+    {
+      "feature": "age",
+      "importance": 0.1968
+    }
   ],
-  "xor_accuracy": 1.0,
-  "gradient_check_max_error": 0.0,
-  "gradient_check_passed": true,
-  "regression_final_loss": 0.06757,
-  "regression_r_squared": 0.994187,
-  "init_comparison": {
-    "zero_final_loss": 0.693147,
-    "random_final_loss": 0.48276,
-    "he_final_loss": 0.047196
+  "clustering": {
+    "n_clusters": 3,
+    "cluster_counts": {
+      "0": 101,
+      "1": 30,
+      "2": 69
+    },
+    "inertia": 1080.0878
   },
-  "diagnostics": {
-    "train_loss": 0.055402,
-    "test_loss": 0.085224,
-    "diagnosis": "good_fit"
-  },
-  "learning_curve": {
-    "train_sizes": [
-      0.2,
-      0.4,
-      0.6,
-      0.8,
-      1.0
-    ],
-    "train_losses": [
-      0.122435,
-      0.15894,
-      0.173573,
-      0.206502,
-      0.112628
-    ],
-    "val_losses": [
-      0.25953,
-      0.104253,
-      0.126186,
-      0.15663,
-      0.214715
+  "new_customer_predictions": {
+    "total_customers": 20,
+    "risk_distribution": {
+      "안전": 18,
+      "주의": 0,
+      "위험": 2
+    },
+    "predictions": [
+      {
+        "loan_id": "N0001",
+        "risk_probability": 0.002,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0002",
+        "risk_probability": 0.0025,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0003",
+        "risk_probability": 0.1497,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0004",
+        "risk_probability": 0.0025,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0005",
+        "risk_probability": 0.0319,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0006",
+        "risk_probability": 0.0036,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0007",
+        "risk_probability": 0.0081,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0008",
+        "risk_probability": 0.0014,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0009",
+        "risk_probability": 0.0026,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0010",
+        "risk_probability": 0.0012,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0011",
+        "risk_probability": 0.0155,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0012",
+        "risk_probability": 0.0021,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0013",
+        "risk_probability": 0.1437,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0014",
+        "risk_probability": 0.7185,
+        "risk_level": "위험"
+      },
+      {
+        "loan_id": "N0015",
+        "risk_probability": 0.0012,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0016",
+        "risk_probability": 0.0184,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0017",
+        "risk_probability": 0.021,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0018",
+        "risk_probability": 0.0001,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0019",
+        "risk_probability": 0.0014,
+        "risk_level": "안전"
+      },
+      {
+        "loan_id": "N0020",
+        "risk_probability": 0.9335,
+        "risk_level": "위험"
+      }
     ]
   }
 }

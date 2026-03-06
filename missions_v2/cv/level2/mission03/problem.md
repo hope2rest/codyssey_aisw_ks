@@ -1,108 +1,94 @@
-## 문항: 이미지 기반 객체 카운팅
+## 문항: 미니 딥러닝 프레임워크 설계를 통한 성능 검증
 
 ### 문제
 
-제공되는 이미지에서 박스(Box)의 개수를 카운팅하는 규칙 기반 파이프라인을 4개의 모듈 파일로 나누어 구현하세요.
+NumPy만으로 Tensor 기반 자동 미분(Autograd) 엔진을 구현하고, 신경망 레이어, 학습 루프, Bias/Variance 진단까지 포함하는 미니 딥러닝 프레임워크를 구축하세요.
 
 ### 제공 데이터
 
 ```
 data/
-├── labels.json            # 이미지별 정답 박스 개수 {"easy_01": 3, ...}
-└── images/                # 640x480 RGB PNG 이미지 (총 15장)
-    ├── easy_01.png        # easy 카테고리 (5장) — 밝은 배경, 박스 간 간격 충분
-    ├── easy_02.png
-    ├── ...
-    ├── medium_01.png      # medium 카테고리 (5장) — 박스 일부 겹침, 그림자 존재
-    ├── medium_02.png
-    ├── ...
-    ├── hard_01.png        # hard 카테고리 (5장) — 적재 형태, 불규칙 다각형, 크기 편차
-    ├── hard_02.png
-    └── ...
+├── xor_data.npz           # XOR 논리 연산 데이터 (4샘플)
+└── regression_data.npz    # 선형 회귀 데이터 (50샘플, y=2*x1+3*x2+noise)
 ```
 
-- `labels.json`: `{"easy_01": 3, "easy_02": 5, ...}` 형태의 이미지별 정답 박스 개수입니다.
-- `images/`: easy/medium/hard 각 5장, 총 15장의 640x480 RGB PNG 이미지입니다. 난이도에 따라 박스 배치와 겹침 정도가 달라집니다.
+- `xor_data.npz`: XOR 문제 학습용 데이터입니다. `X`(4×2)는 입력, `y`(4×1)는 XOR 출력입니다.
+- `regression_data.npz`: 선형 회귀 학습/테스트 데이터입니다. `X_train`(40×2), `y_train`(40×1), `X_test`(10×2), `y_test`(10×1)로 구성됩니다.
+
+### 데이터 키 구조
+
+| 파일 | 키 | 설명 |
+|------|-----|------|
+| `xor_data.npz` | `X` (4×2), `y` (4×1) | XOR 논리 연산 데이터 |
+| `regression_data.npz` | `X_train` (40×2), `y_train` (40×1), `X_test` (10×2), `y_test` (10×1) | 선형 회귀 데이터 |
 
 ### 프로젝트 구조
 
-| 파일 | 역할 | 핵심 함수 |
-|------|------|----------|
-| `conv2d.py` | 2D 컨볼루션, 엣지 검출, 이미지 증강 | `conv2d()`, `to_grayscale()`, `compute_edge_magnitude()`, `flip_horizontal()`, `flip_vertical()`, `adjust_brightness()`, `normalize_image()` |
-| `counter.py` | 박스 카운팅 및 증강 앙상블 | `count_boxes()`, `ensemble_count()`, `count_boxes_augmented()`, `extract_bounding_boxes()` |
-| `metrics.py` | 정량적 성능 지표, 방법 비교 | `compute_metrics()`, `find_worst_case()`, `compare_methods()` |
+| 파일 | 역할 | 핵심 클래스/함수 |
+|------|------|-----------------|
+| `tensor.py` | Tensor 클래스, 자동 미분 | `Tensor` (`__add__`, `__mul__`, `__matmul__`, `relu`, `sigmoid`, `log`, `sum`, `backward`) |
+| `autograd.py` | 수치적 그래디언트 검증 | `numerical_gradient()`, `gradient_check()` |
+| `layers.py` | 신경망 레이어, 손실 함수 | `Linear`, `Sequential`, `ReLU`, `Sigmoid`, `mse_loss()`, `binary_cross_entropy()` |
+| `trainer.py` | SGD 옵티마이저, 학습 루프 | `SGD`, `train_epoch()`, `train()` |
+| `diagnostics.py` | 성능 진단 | `compute_train_test_loss()`, `diagnose_bias_variance()`, `learning_curve()` |
 | `main.py` | 전체 파이프라인 실행 | `main()` |
 
 ### 구현 요구사항
 
-#### Part A: conv2d.py - 컨볼루션 기반 엣지 검출
+#### Part A: tensor.py - Tensor 클래스와 자동 미분
 
-#### 1. `conv2d(image, kernel)`
-- NumPy만으로 2D 컨볼루션을 구현합니다 (valid 모드).
+1. `Tensor.__init__(data, requires_grad, _children)` - `data`를 `np.float64` ndarray로 변환합니다. `grad=None`, `_backward=lambda:None`, `_prev=set(_children)`을 저장합니다.
+2. `__add__(other)` - 요소별 덧셈과 backward를 구현합니다. 브로드캐스팅 시 backward에서 합산하여 원래 shape으로 복원합니다.
+3. `__mul__(other)` - 요소별 곱셈과 backward를 구현합니다. 브로드캐스팅 처리 포함.
+4. `__matmul__(other)` - 행렬 곱셈과 backward를 구현합니다. `self.grad += out.grad @ other.data.T`, `other.grad += self.data.T @ out.grad`.
+5. `__neg__()`, `__sub__(other)` - 부정과 뺄셈을 구현합니다.
+6. `relu()` - ReLU 활성화 함수. backward: `grad * (self.data > 0)`.
+7. `sigmoid()` - Sigmoid 활성화 함수. 수치 안정성을 위해 입력을 `[-500, 500]` 범위로 클리핑합니다. `s = 1/(1+exp(-x))`, backward: `grad * s * (1-s)`.
+8. `sum()` - 모든 요소의 합. backward: `ones_like * out.grad`.
+9. `log()` - 요소별 로그. 수치 안정성을 위해 입력을 `[1e-12, inf]`로 클리핑합니다. backward: `grad / x`.
+10. `backward()` - 역전파. 위상 정렬(topological sort)로 순서를 구한 후 역순으로 `_backward()` 호출. 그래디언트 누적은 `+=` 사용.
 
-#### 2. `to_grayscale(rgb)`
-- `gray = 0.299*R + 0.587*G + 0.114*B` 공식으로 변환합니다.
+#### Part B: autograd.py - 그래디언트 검증
 
-#### 3. `compute_edge_magnitude(gray)`
-- Sobel 커널(3x3)로 수평/수직 엣지를 검출합니다.
-- `edge_magnitude = sqrt(Gx^2 + Gy^2)`
+11. `numerical_gradient(f, x, eps=1e-5)` - Central Difference로 수치적 그래디언트를 계산합니다: `(f(x+eps) - f(x-eps)) / (2*eps)`.
+12. `gradient_check(f, x, eps=1e-5, tol=1e-4)` - 분석적 그래디언트(backward)와 수치적 그래디언트를 비교합니다. 최대 상대 오차를 반환합니다: `max(|a-n| / max(|a|+|n|, 1e-8))`.
 
-#### Part A-2: conv2d.py - 이미지 증강
+#### Part C: layers.py - 신경망 레이어
 
-#### 4. `flip_horizontal(image)`
-- 이미지를 좌우 반전합니다 (2D/3D 배열 지원).
+13. `Linear(in_features, out_features, init)` - 완전 연결 레이어. 초기화 옵션:
+    - `'zero'`: 모두 0 (대칭 깨지지 않음)
+    - `'random'`: `N(0, 0.01)` (기울기 소실 가능)
+    - `'he'`: `N(0, sqrt(2/fan_in))` (ReLU 네트워크에 권장)
+    - `W`는 `(in_features, out_features)`, `b`는 `(1, out_features)` 형태. 둘 다 `requires_grad=True`.
+14. `Sequential(*layers)` - 레이어를 순차적으로 연결합니다. `forward(x)`와 `parameters()` 구현.
+15. `mse_loss(predicted, target)` - MSE 손실: `((predicted - target)^2).sum() / N`.
+16. `binary_cross_entropy(predicted, target)` - BCE 손실: `-mean(t*log(p) + (1-t)*log(1-p))`.
 
-#### 5. `flip_vertical(image)`
-- 이미지를 상하 반전합니다 (2D/3D 배열 지원).
+#### Part D: trainer.py - 학습 루프
 
-#### 6. `adjust_brightness(image, factor)`
-- `factor`를 곱한 뒤 0~255 범위로 클리핑합니다.
+17. `SGD(parameters, lr)` - `step()`: `p.data -= lr * p.grad`, `zero_grad()`: `p.grad = None`.
+18. `train_epoch(model, X, y, loss_fn, optimizer)` - 1 에폭 학습: zero_grad → forward → loss → backward → step. 손실값 반환.
+19. `train(model, X, y, loss_fn, optimizer, epochs)` - 전체 학습 루프. 에폭별 손실 리스트 반환.
 
-#### 7. `normalize_image(image)`
-- Min-Max 정규화로 0~255 범위에 매핑합니다.
+#### Part E: diagnostics.py - 성능 진단
 
-#### Part B: counter.py - 박스 카운팅 파이프라인
+20. `compute_train_test_loss(model, X_train, y_train, X_test, y_test, loss_fn)` - 학습/테스트 손실을 계산하여 `(train_loss, test_loss)` 반환.
+21. `diagnose_bias_variance(train_loss, test_loss, threshold=0.1)` - 진단 결과 문자열 반환:
+    - `train_loss > threshold` → `"high_bias"`
+    - `test_loss - train_loss > threshold` → `"high_variance"`
+    - 그 외 → `"good_fit"`
+22. `learning_curve(model_fn, X, y, loss_fn, optimizer_fn, epochs, train_sizes)` - 다양한 학습 데이터 크기에서 학습/검증 손실을 계산합니다. `{"train_sizes": list, "train_losses": list, "val_losses": list}` 반환.
 
-#### 8. `count_boxes(image_path)`
-- 엣지 이미지를 이진화(thresholding)합니다.
-- Connected Component 분석으로 박스 개수를 추정합니다 (직접 구현(BFS/DFS) 또는 `scipy.ndimage.label` 사용 가능).
-- 최소 면적 필터(`min_area`)로 노이즈를 제거합니다.
-- `THRESHOLD`, `MIN_AREA` 변수를 명시적으로 정의합니다.
+#### Part F: main.py - 파이프라인 실행
 
-#### Part B-2: counter.py - 증강 앙상블 카운팅
-
-#### 9. `ensemble_count(counts)`
-- 여러 카운팅 결과 리스트를 받아 중앙값(median)을 정수로 반환합니다.
-
-#### 10. `count_boxes_augmented(image_path)`
-- 원본 이미지에 증강(좌우/상하 반전, 밝기 조절 등)을 적용하여 여러 버전을 생성합니다.
-- 각 버전의 카운팅 결과를 `ensemble_count()`로 앙상블합니다.
-
-#### 11. `extract_bounding_boxes(image_path)`
-- 검출된 각 박스의 바운딩 박스 좌표를 추출합니다.
-- 반환: `[{"x_min": 정수, "y_min": 정수, "x_max": 정수, "y_max": 정수, "area": 정수}, ...]`
-
-#### Part C: metrics.py - 정량적 성능 분석
-
-#### 12. `compute_metrics(predictions, labels, category)`
-- MAE (Mean Absolute Error): 예측 개수와 실제 개수 차이의 평균
-- Accuracy: 정확히 맞춘 이미지 수 / 전체 이미지 수
-
-#### 13. `find_worst_case(predictions, labels, category)`
-- 해당 카테고리에서 오차가 가장 큰 이미지 이름을 반환합니다.
-
-#### 14. `compare_methods(predictions_base, predictions_aug, labels)`
-- 기본 카운팅과 증강 앙상블 카운팅의 카테고리별 MAE/Accuracy를 비교합니다.
-- 반환: 카테고리별 `base_mae`, `augmented_mae`, `mae_improvement`, `base_accuracy`, `augmented_accuracy`
-
-#### Part D: main.py - 전체 파이프라인
-
-#### 15. `main()`
-- `labels.json` 로드 → 유효 이미지 필터
-- 기본 카운팅 (`count_boxes`) 및 증강 앙상블 카운팅 (`count_boxes_augmented`)
-- 바운딩 박스 추출 (`extract_bounding_boxes`)
-- 메트릭 계산 (기본 + 증강) 및 방법 비교 (`compare_methods`)
-- `result_q3.json` 파일로 결과를 저장
+23. `main()` - 전체 파이프라인:
+    1. XOR 데이터 로드 → 모델(`Linear(2,4)->ReLU->Linear(4,1)->Sigmoid`) 학습 (SGD lr=0.1, 1000 에폭, BCE 손실)
+    2. Gradient check 수행
+    3. 회귀 데이터 로드 → 회귀 모델 학습 → R-squared 계산
+    4. 초기화 전략 비교 (zero/random/he)
+    5. Bias/Variance 진단
+    6. Learning curve 계산
+    7. `result_q3.json` 저장
 
 ### 출력 형식
 
@@ -110,36 +96,39 @@ data/
 
 ```json
 {
-  "predictions": {"easy_01": 정수, ...},
-  "predictions_augmented": {"easy_01": 정수, ...},
-  "sample_bounding_boxes": [
-    {"x_min": 정수, "y_min": 정수, "x_max": 정수, "y_max": 정수, "area": 정수}
-  ],
-  "metrics": {
-    "easy":   {"mae": 실수, "accuracy": 실수},
-    "medium": {"mae": 실수, "accuracy": 실수},
-    "hard":   {"mae": 실수, "accuracy": 실수}
+  "xor_final_loss": 실수,
+  "xor_predictions": [[실수], [실수], [실수], [실수]],
+  "xor_accuracy": 실수,
+  "gradient_check_max_error": 실수,
+  "gradient_check_passed": 불리언,
+  "regression_final_loss": 실수,
+  "regression_r_squared": 실수,
+  "init_comparison": {
+    "zero_final_loss": 실수,
+    "random_final_loss": 실수,
+    "he_final_loss": 실수
   },
-  "metrics_augmented": {
-    "easy":   {"mae": 실수, "accuracy": 실수},
-    "medium": {"mae": 실수, "accuracy": 실수},
-    "hard":   {"mae": 실수, "accuracy": 실수}
+  "diagnostics": {
+    "train_loss": 실수,
+    "test_loss": 실수,
+    "diagnosis": "문자열"
   },
-  "method_comparison": {
-    "easy":   {"base_mae": 실수, "augmented_mae": 실수, "mae_improvement": 실수, ...},
-    "medium": {"base_mae": 실수, "augmented_mae": 실수, "mae_improvement": 실수, ...},
-    "hard":   {"base_mae": 실수, "augmented_mae": 실수, "mae_improvement": 실수, ...}
-  },
-  "worst_case_image": "hard_XX"
+  "learning_curve": {
+    "train_sizes": [실수, ...],
+    "train_losses": [실수, ...],
+    "val_losses": [실수, ...]
+  }
 }
 ```
 
+- 모든 실수값은 `round(..., 6)`으로 반올림합니다.
+
 ### 제약 사항
 
-- `conv2d` 함수는 반드시 NumPy만으로 직접 구현 (`cv2.filter2D` 등 사용 금지)
-- 이미지 로드에는 `PIL` 또는 `cv2`를 사용할 수 있습니다.
-- `THRESHOLD`와 `MIN_AREA` 값은 코드 내에서 명시적으로 변수로 정의
-- `counter.py`는 `conv2d.py`를, `main.py`는 `counter.py`와 `metrics.py`를 import하여 사용
+- NumPy만으로 모든 수치 계산을 수행합니다 (`torch`, `tensorflow`, `sklearn` 사용 금지).
+- `Tensor.backward()`에서 그래디언트 누적은 반드시 `+=`를 사용합니다 (`=` 사용 시 공유 노드 오류 발생).
+- `sigmoid` 입력은 `[-500, 500]`, `log` 입력은 `[1e-12, inf]`로 클리핑합니다.
+- `np.random.seed(42)`를 `main()` 시작 시 설정합니다.
 
 ### 제출 폴더 구조
 
@@ -148,12 +137,18 @@ data/
 ```
 submission/
 ├── src/
-│   ├── conv2d.py
-│   ├── counter.py
-│   ├── metrics.py
+│   ├── tensor.py
+│   ├── autograd.py
+│   ├── layers.py
+│   ├── trainer.py
+│   ├── diagnostics.py
 │   └── main.py
 ├── config/
-│   └── settings.json
+│   └── config.json
+├── models/
+│   └── model_info.json
+├── logs/
+│   └── training_log.json
 └── output/
     └── result_q3.json
 ```

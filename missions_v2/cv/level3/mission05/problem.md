@@ -1,94 +1,87 @@
-## 문항: 딥러닝 프레임워크 설계를 통한 성능 검증
+## 문항: 금융 리스크 예측 모델 고도화 및 예측 시스템 구현
 
 ### 문제
 
-NumPy만으로 Tensor 기반 자동 미분(Autograd) 엔진을 구현하고, 신경망 레이어, 학습 루프, Bias/Variance 진단까지 포함하는 미니 딥러닝 프레임워크를 구축하세요.
+대출 고객 데이터에 대해 ML 기반 리스크 예측 모델을 구축하고, PCA/K-Means/Feature Importance로 모델을 해석하며, 신규 고객 리스크 판정 기능을 포함한 예측 시스템을 구현하세요.
 
 ### 제공 데이터
 
 ```
 data/
-├── xor_data.npz           # XOR 논리 연산 데이터 (4샘플)
-└── regression_data.npz    # 선형 회귀 데이터 (50샘플, y=2*x1+3*x2+noise)
+├── loan_data.csv              # 대출 고객 학습 데이터 (200행, 11열, 헤더 포함)
+├── new_customers.csv          # 신규 고객 데이터 (20행, 10열, 레이블 없음)
+└── threshold_config.json      # 리스크 판정 임계값 설정
 ```
 
-- `xor_data.npz`: XOR 문제 학습용 데이터입니다. `X`(4x2)는 입력, `y`(4x1)는 XOR 출력입니다.
-- `regression_data.npz`: 선형 회귀 학습/테스트 데이터입니다. `X_train`(40x2), `y_train`(40x1), `X_test`(10x2), `y_test`(10x1)로 구성됩니다.
+- `loan_data.csv`: 200명의 대출 고객 정보를 담은 CSV 파일입니다. 9개 feature와 1개 레이블(`risk_label`)로 구성되며, 일부 컬럼에 결측값이 포함되어 있습니다. 레이블은 0(안전)과 1(위험)의 약 85:15 불균형 분포입니다.
+- `new_customers.csv`: 리스크 판정이 필요한 신규 고객 20명의 데이터입니다. `risk_label` 없이 feature만 제공됩니다.
+- `threshold_config.json`: `{"default_threshold": 0.5, "conservative_threshold": 0.3}` 형태의 리스크 판정 임계값입니다.
 
-### 데이터 키 구조
+### loan_data.csv 구조
 
-| 파일 | 키 | 설명 |
-|------|-----|------|
-| `xor_data.npz` | `X` (4x2), `y` (4x1) | XOR 논리 연산 데이터 |
-| `regression_data.npz` | `X_train` (40x2), `y_train` (40x1), `X_test` (10x2), `y_test` (10x1) | 선형 회귀 데이터 |
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| `loan_id` | str | 대출 고유 ID (L0001 ~ L0200) |
+| `age` | int | 나이 (20~65) |
+| `annual_income` | int | 연소득 (결측 포함) |
+| `debt_ratio` | float | 부채 비율 (결측 포함) |
+| `credit_score` | int | 신용 점수 (결측 포함) |
+| `employment_years` | int | 근속 연수 (결측 포함) |
+| `loan_amount` | int | 대출 금액 |
+| `interest_rate` | float | 이자율 |
+| `num_credit_lines` | int | 신용 거래 수 |
+| `payment_history_score` | int | 납부 이력 점수 (결측 포함) |
+| `risk_label` | int | 0=안전, 1=위험 (15% 불균형) |
 
 ### 프로젝트 구조
 
-| 파일 | 역할 | 핵심 클래스/함수 |
-|------|------|------------------|
-| `tensor.py` | Tensor 클래스, 자동 미분 | `Tensor` (`__add__`, `__mul__`, `__matmul__`, `relu`, `sigmoid`, `log`, `sum`, `backward`) |
-| `autograd.py` | 수치적 그래디언트 검증 | `numerical_gradient()`, `gradient_check()` |
-| `layers.py` | 신경망 레이어, 손실 함수 | `Linear`, `Sequential`, `ReLU`, `Sigmoid`, `mse_loss()`, `binary_cross_entropy()` |
-| `trainer.py` | SGD 옵티마이저, 학습 루프 | `SGD`, `train_epoch()`, `train()` |
-| `diagnostics.py` | 성능 진단 | `compute_train_test_loss()`, `diagnose_bias_variance()`, `learning_curve()` |
-| `main.py` | 전체 파이프라인 실행 | `main()` |
+| 파일 | 역할 | 핵심 함수 |
+|------|------|----------|
+| `preprocessor.py` | 데이터 로드, 결측 처리, 인코딩, 스케일링 | `load_data()`, `handle_missing()`, `encode_categoricals()`, `scale_features()` |
+| `model.py` | 학습/테스트 분할, PCA, 모델 학습, 평가 | `split_data()`, `apply_pca()`, `train_model()`, `evaluate_model()` |
+| `interpreter.py` | 모델 해석, PCA 분석, 클러스터링 | `get_feature_importance()`, `get_pca_variance()`, `cluster_features()` |
+| `predictor.py` | 신규 고객 리스크 판정 서비스 | `load_new_customers()`, `predict_risk()`, `classify_risk_level()`, `generate_report()` |
+| `main.py` | 전체 파이프라인 실행, 결과 저장 | `main()` |
 
 ### 구현 요구사항
 
-#### Part A: tensor.py - Tensor 클래스와 자동 미분
+#### Part A: preprocessor.py - 데이터 전처리
 
-1. `Tensor.__init__(data, requires_grad, _children)` - `data`를 `np.float64` ndarray로 변환합니다. `grad=None`, `_backward=lambda:None`, `_prev=set(_children)`을 저장합니다.
-2. `__add__(other)` - 요소별 덧셈과 backward를 구현합니다. 브로드캐스팅 시 backward에서 합산하여 원래 shape으로 복원합니다.
-3. `__mul__(other)` - 요소별 곱셈과 backward를 구현합니다. 브로드캐스팅 처리 포함.
-4. `__matmul__(other)` - 행렬 곱셈과 backward를 구현합니다. `self.grad += out.grad @ other.data.T`, `other.grad += self.data.T @ out.grad`.
-5. `__neg__()`, `__sub__(other)` - 부정과 뺄셈을 구현합니다.
-6. `relu()` - ReLU 활성화 함수. backward: `grad * (self.data > 0)`.
-7. `sigmoid()` - Sigmoid 활성화 함수. 수치 안정성을 위해 입력을 `[-500, 500]` 범위로 클리핑합니다. `s = 1/(1+exp(-x))`, backward: `grad * s * (1-s)`.
-8. `sum()` - 모든 요소의 합. backward: `ones_like * out.grad`.
-9. `log()` - 요소별 로그. 수치 안정성을 위해 입력을 `[1e-12, inf]`로 클리핑합니다. backward: `grad / x`.
-10. `backward()` - 역전파. 위상 정렬(topological sort)로 순서를 구한 후 역순으로 `_backward()` 호출. 그래디언트 누적은 `+=` 사용.
+1. `load_data(csv_path)` - CSV 파일을 pandas DataFrame으로 로드합니다. `loan_id` 컬럼을 제거하고 (X, y) 튜플을 반환합니다. X는 feature DataFrame, y는 `risk_label` Series입니다.
+2. `handle_missing(X)` - 수치형 결측값을 해당 컬럼의 중앙값(median)으로 대체합니다. 처리된 DataFrame을 반환합니다.
+3. `encode_categoricals(X)` - 범주형 컬럼이 있으면 Label Encoding을 적용합니다. 본 데이터셋에는 범주형이 없으므로 그대로 반환합니다.
+4. `scale_features(X)` - `StandardScaler`로 모든 feature를 표준화합니다. (scaled_array, scaler) 튜플을 반환합니다.
 
-#### Part B: autograd.py - 그래디언트 검증
+#### Part B: model.py - 모델 학습 및 평가
 
-11. `numerical_gradient(f, x, eps=1e-5)` - Central Difference로 수치적 그래디언트를 계산합니다: `(f(x+eps) - f(x-eps)) / (2*eps)`.
-12. `gradient_check(f, x, eps=1e-5, tol=1e-4)` - 분석적 그래디언트(backward)와 수치적 그래디언트를 비교합니다. 최대 상대 오차를 반환합니다: `max(|a-n| / max(|a|+|n|, 1e-8))`.
+5. `split_data(X, y)` - `train_test_split`으로 70/30 분할합니다 (`random_state=42`, `stratify=y`). (X_train, X_test, y_train, y_test) 튜플을 반환합니다.
+6. `apply_pca(X_train, X_test, n_components=0.95)` - PCA를 학습 데이터에 fit하고, 학습/테스트 데이터를 모두 transform합니다. (X_train_pca, X_test_pca, pca) 튜플을 반환합니다.
+7. `train_model(X_train, y_train, model_type="logistic")` - `model_type="logistic"`이면 `LogisticRegression(random_state=42, max_iter=1000)`, `model_type="ridge"`이면 `RidgeClassifier(random_state=42)`를 학습합니다. 학습된 모델을 반환합니다.
+8. `evaluate_model(model, X_test, y_test)` - accuracy, precision, recall, f1_score(macro)를 계산합니다. `{"accuracy": float, "precision": float, "recall": float, "f1_macro": float}` 딕셔너리를 반환합니다.
 
-#### Part C: layers.py - 신경망 레이어
+#### Part C: interpreter.py - 모델 해석
 
-13. `Linear(in_features, out_features, init)` - 완전 연결 레이어. 초기화 옵션:
-    - `'zero'`: 모두 0 (대칭 깨지지 않음)
-    - `'random'`: `N(0, 0.01)` (기울기 소실 가능)
-    - `'he'`: `N(0, sqrt(2/fan_in))` (ReLU 네트워크에 권장)
-    - `W`는 `(in_features, out_features)`, `b`는 `(1, out_features)` 형태. 둘 다 `requires_grad=True`.
-14. `Sequential(*layers)` - 레이어를 순차적으로 연결합니다. `forward(x)`와 `parameters()` 구현.
-15. `mse_loss(predicted, target)` - MSE 손실: `((predicted - target)^2).sum() / N`.
-16. `binary_cross_entropy(predicted, target)` - BCE 손실: `-mean(t*log(p) + (1-t)*log(1-p))`.
+9. `get_feature_importance(model, feature_names)` - 모델의 `coef_` 속성에서 절댓값 기준 feature importance를 추출합니다. `[{"feature": str, "importance": float}, ...]` 리스트를 절댓값 내림차순으로 반환합니다.
+10. `get_pca_variance(pca)` - PCA 객체의 `explained_variance_ratio_`를 반환합니다. `[{"component": int, "variance_ratio": float}, ...]` 리스트를 반환합니다.
+11. `cluster_features(X_scaled, n_clusters=3)` - K-Means(n_clusters=3, random_state=42)로 클러스터링합니다. `{"labels": list, "cluster_counts": dict, "inertia": float}` 딕셔너리를 반환합니다.
 
-#### Part D: trainer.py - 학습 루프
+#### Part D: predictor.py - 리스크 판정 서비스
 
-17. `SGD(parameters, lr)` - `step()`: `p.data -= lr * p.grad`, `zero_grad()`: `p.grad = None`.
-18. `train_epoch(model, X, y, loss_fn, optimizer)` - 1 에폭 학습: zero_grad → forward → loss → backward → step. 손실값 반환.
-19. `train(model, X, y, loss_fn, optimizer, epochs)` - 전체 학습 루프. 에폭별 손실 리스트 반환.
+12. `load_new_customers(csv_path, scaler)` - 신규 고객 CSV를 로드하고, 학습 데이터와 동일한 전처리(결측 처리, 스케일링)를 적용합니다. `loan_id` 리스트와 전처리된 배열을 반환합니다.
+13. `predict_risk(model, X_new)` - 학습된 모델로 신규 고객의 리스크 확률을 예측합니다. LogisticRegression의 경우 `predict_proba`를 사용합니다. 반환: 위험 확률 배열.
+14. `classify_risk_level(probabilities, threshold_config)` - 확률 기반으로 리스크 등급을 분류합니다:
+    - `확률 >= conservative_threshold`이고 `< default_threshold` → `"주의"`
+    - `확률 >= default_threshold` → `"위험"`
+    - 그 외 → `"안전"`
+    - 반환: 등급 리스트
+15. `generate_report(loan_ids, probabilities, risk_levels) -> list` - 고객별 판정 결과를 리포트로 생성합니다. `[{"loan_id": str, "risk_probability": float, "risk_level": str}, ...]` 형태로 반환합니다.
 
-#### Part E: diagnostics.py - 성능 진단
+#### Part E: main.py - 파이프라인 실행
 
-20. `compute_train_test_loss(model, X_train, y_train, X_test, y_test, loss_fn)` - 학습/테스트 손실을 계산하여 `(train_loss, test_loss)` 반환.
-21. `diagnose_bias_variance(train_loss, test_loss, threshold=0.1)` - 진단 결과 문자열 반환:
-    - `train_loss > threshold` → `"high_bias"`
-    - `test_loss - train_loss > threshold` → `"high_variance"`
-    - 그 외 → `"good_fit"`
-22. `learning_curve(model_fn, X, y, loss_fn, optimizer_fn, epochs, train_sizes)` - 다양한 학습 데이터 크기에서 학습/검증 손실을 계산합니다. `{"train_sizes": list, "train_losses": list, "val_losses": list}` 반환.
-
-#### Part F: main.py - 파이프라인 실행
-
-23. `main()` - 전체 파이프라인:
-    1. XOR 데이터 로드 → 모델(`Linear(2,4)->ReLU->Linear(4,1)->Sigmoid`) 학습 (SGD lr=0.1, 1000 에폭, BCE 손실)
-    2. Gradient check 수행
-    3. 회귀 데이터 로드 → 회귀 모델 학습 → R-squared 계산
-    4. 초기화 전략 비교 (zero/random/he)
-    5. Bias/Variance 진단
-    6. Learning curve 계산
-    7. `result_q5.json` 저장
+16. `main()` - 위의 모듈을 순서대로 호출하여 전체 파이프라인을 실행합니다.
+17. LogisticRegression과 RidgeClassifier 두 모델을 각각 학습/평가합니다.
+18. 최적 모델로 신규 고객 리스크 판정을 수행합니다.
+19. `result_q5.json` 파일로 결과를 저장합니다.
 
 ### 출력 형식
 
@@ -96,39 +89,57 @@ data/
 
 ```json
 {
-  "xor_final_loss": 실수,
-  "xor_predictions": [[실수], [실수], [실수], [실수]],
-  "xor_accuracy": 실수,
-  "gradient_check_max_error": 실수,
-  "gradient_check_passed": 불리언,
-  "regression_final_loss": 실수,
-  "regression_r_squared": 실수,
-  "init_comparison": {
-    "zero_final_loss": 실수,
-    "random_final_loss": 실수,
-    "he_final_loss": 실수
+  "preprocessing": {
+    "original_shape": [행수, 열수],
+    "missing_values_before": 정수,
+    "missing_values_after": 정수,
+    "scaled_mean_abs_max": 실수
   },
-  "diagnostics": {
-    "train_loss": 실수,
-    "test_loss": 실수,
-    "diagnosis": "문자열"
+  "model_logistic": {
+    "accuracy": 실수,
+    "precision": 실수,
+    "recall": 실수,
+    "f1_macro": 실수
   },
-  "learning_curve": {
-    "train_sizes": [실수, ...],
-    "train_losses": [실수, ...],
-    "val_losses": [실수, ...]
+  "model_ridge": {
+    "accuracy": 실수,
+    "precision": 실수,
+    "recall": 실수,
+    "f1_macro": 실수
+  },
+  "best_model": "문자열",
+  "pca": {
+    "n_components_selected": 정수,
+    "total_variance_explained": 실수,
+    "variance_ratios": [{"component": 정수, "variance_ratio": 실수}, ...]
+  },
+  "feature_importance": [{"feature": "문자열", "importance": 실수}, ...],
+  "clustering": {
+    "n_clusters": 3,
+    "cluster_counts": {"0": 정수, "1": 정수, "2": 정수},
+    "inertia": 실수
+  },
+  "new_customer_predictions": {
+    "total_customers": 정수,
+    "risk_distribution": {"안전": 정수, "주의": 정수, "위험": 정수},
+    "predictions": [
+      {"loan_id": "문자열", "risk_probability": 실수, "risk_level": "문자열"}
+    ]
   }
 }
 ```
 
-- 모든 실수값은 `round(..., 6)`으로 반올림합니다.
+- 모든 실수값은 `round(..., 4)`로 반올림합니다.
 
 ### 제약 사항
 
-- NumPy만으로 모든 수치 계산을 수행합니다 (`torch`, `tensorflow`, `sklearn` 사용 금지).
-- `Tensor.backward()`에서 그래디언트 누적은 반드시 `+=`를 사용합니다 (`=` 사용 시 공유 노드 오류 발생).
-- `sigmoid` 입력은 `[-500, 500]`, `log` 입력은 `[1e-12, inf]`로 클리핑합니다.
-- `np.random.seed(42)`를 `main()` 시작 시 설정합니다.
+- `sklearn`의 `StandardScaler`, `PCA`, `LogisticRegression`, `RidgeClassifier`, `KMeans`, `train_test_split` 사용 가능
+- `LogisticRegression`은 `random_state=42, max_iter=1000`으로 설정
+- `RidgeClassifier`는 `random_state=42`로 설정
+- `PCA`는 `n_components=0.95` (95% 분산 설명)
+- `KMeans`는 `n_clusters=3, random_state=42`
+- `train_test_split`은 `test_size=0.3, random_state=42, stratify=y`
+- 최적 모델 선택 기준: f1_macro가 높은 모델 (동일 시 LogisticRegression 우선)
 
 ### 제출 폴더 구조
 
@@ -137,18 +148,17 @@ data/
 ```
 submission/
 ├── src/
-│   ├── tensor.py
-│   ├── autograd.py
-│   ├── layers.py
-│   ├── trainer.py
-│   ├── diagnostics.py
+│   ├── preprocessor.py
+│   ├── model.py
+│   ├── interpreter.py
+│   ├── predictor.py
 │   └── main.py
 ├── config/
 │   └── config.json
 ├── models/
 │   └── model_info.json
 ├── logs/
-│   └── training_log.json
+│   └── prediction_log.json
 └── output/
     └── result_q5.json
 ```

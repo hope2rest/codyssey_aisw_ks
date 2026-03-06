@@ -1,0 +1,35 @@
+{
+  "data_summary": {
+    "total_files_loaded": 10,
+    "total_rows_merged": 17544,
+    "missing_values_filled": 350,
+    "outliers_removed": 78,
+    "feature_count": 12
+  },
+  "validation": {
+    "monthly_diff_pct_mean": 0.147326
+  },
+  "model_linear": {
+    "mae": 13.187786,
+    "rmse": 16.575785,
+    "r_squared": 0.615557,
+    "mape": 3.841292
+  },
+  "model_ridge": {
+    "mae": 13.18778,
+    "rmse": 16.575766,
+    "r_squared": 0.615558,
+    "mape": 3.841291
+  },
+  "best_model": "ridge",
+  "feature_count": 12,
+  "lag_features": [
+    1,
+    24,
+    168
+  ],
+  "rolling_windows": [
+    24,
+    168
+  ]
+}

@@ -1,171 +1,127 @@
-"""main.py - 미니 딥러닝 프레임워크 전체 파이프라인"""
-import sys
-import os
+"""main.py - 전체 파이프라인 실행"""
 import json
+import os
 import numpy as np
 
-# 현재 디렉토리를 경로에 추가
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from tensor import Tensor
-from autograd import gradient_check
-from layers import Linear, Sequential, ReLU, Sigmoid, mse_loss, binary_cross_entropy
-from trainer import SGD, train
-from diagnostics import compute_train_test_loss, diagnose_bias_variance, learning_curve
+from preprocessor import load_data, handle_missing, encode_categoricals, scale_features
+from model import split_data, apply_pca, train_model, evaluate_model
+from interpreter import get_feature_importance, get_pca_variance, cluster_features
+from predictor import load_new_customers, predict_risk, classify_risk_level, generate_report
 
 
 def main():
-    np.random.seed(42)
-
-    # 데이터 디렉토리 결정
+    """전체 ML 파이프라인을 실행하고 result_q5.json을 저장합니다."""
+    # 데이터 경로
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(script_dir)
     mission_dir = os.path.dirname(project_dir)
     data_dir = os.path.join(mission_dir, "data")
+    csv_path = os.path.join(data_dir, "loan_data.csv")
+    new_csv_path = os.path.join(data_dir, "new_customers.csv")
+    threshold_path = os.path.join(data_dir, "threshold_config.json")
 
-    # ========== 1. XOR 문제 ==========
-    xor_data = np.load(os.path.join(data_dir, "xor_data.npz"))
-    X_xor = xor_data["X"].astype(np.float64)
-    y_xor = xor_data["y"].astype(np.float64)
+    # 1. 데이터 로드
+    X, y = load_data(csv_path)
+    original_shape = list(X.shape)
+    missing_before = int(X.isnull().sum().sum())
 
-    # 모델 구축
-    np.random.seed(42)
-    l1 = Linear(2, 4, init='he')
-    l2 = Linear(4, 1, init='he')
-    model_xor = Sequential(l1, ReLU(), l2, Sigmoid())
+    # 2. 결측 처리
+    X = handle_missing(X)
+    missing_after = int(X.isnull().sum().sum())
 
-    optimizer_xor = SGD(model_xor.parameters(), lr=0.1)
-    xor_losses = train(model_xor, X_xor, y_xor, binary_cross_entropy, optimizer_xor, epochs=1000)
-    xor_final_loss = xor_losses[-1]
+    # 3. 인코딩
+    X = encode_categoricals(X)
 
-    # 예측
-    x_t = Tensor(X_xor)
-    xor_preds = model_xor.forward(x_t)
-    xor_predictions = xor_preds.data.tolist()
+    # feature 이름 저장
+    feature_names = list(X.columns)
 
-    # 정확도
-    preds_rounded = np.round(xor_preds.data)
-    xor_accuracy = float(np.mean(preds_rounded == y_xor))
+    # 4. 스케일링
+    X_scaled, scaler = scale_features(X)
+    scaled_mean_abs_max = round(float(np.max(np.abs(np.mean(X_scaled, axis=0)))), 4)
 
-    # ========== 2. 그래디언트 검증 ==========
-    np.random.seed(42)
+    # 5. train/test split
+    X_train, X_test, y_train, y_test = split_data(X_scaled, y)
 
-    def simple_fn(x):
-        """f(x) = sum(x^2 + 2*x)"""
-        return (x * x + Tensor(np.full_like(x.data, 2.0)) * x).sum()
+    # 6. PCA
+    X_train_pca, X_test_pca, pca = apply_pca(X_train, X_test, n_components=0.95)
 
-    x_check = np.random.randn(3, 2)
-    max_error = gradient_check(simple_fn, x_check)
-    gradient_check_passed = max_error < 1e-4
+    # 7. LogisticRegression 학습/평가
+    logistic_model = train_model(X_train_pca, y_train, model_type="logistic")
+    logistic_metrics = evaluate_model(logistic_model, X_test_pca, y_test)
 
-    # ========== 3. 회귀 문제 ==========
-    reg_data = np.load(os.path.join(data_dir, "regression_data.npz"))
-    X_reg = reg_data["X"].astype(np.float64)
-    y_reg = reg_data["y"].astype(np.float64)
+    # 8. RidgeClassifier 학습/평가
+    ridge_model = train_model(X_train_pca, y_train, model_type="ridge")
+    ridge_metrics = evaluate_model(ridge_model, X_test_pca, y_test)
 
-    np.random.seed(42)
-    reg_model = Sequential(
-        Linear(2, 8, init='he'),
-        ReLU(),
-        Linear(8, 1, init='he')
-    )
-    optimizer_reg = SGD(reg_model.parameters(), lr=0.01)
-    reg_losses = train(reg_model, X_reg, y_reg, mse_loss, optimizer_reg, epochs=500)
-    regression_final_loss = reg_losses[-1]
+    # 9. 최적 모델 선택 (f1_macro 기준, 동일 시 LogisticRegression 우선)
+    if logistic_metrics["f1_macro"] >= ridge_metrics["f1_macro"]:
+        best_model_name = "logistic"
+        best_model = logistic_model
+    else:
+        best_model_name = "ridge"
+        best_model = ridge_model
 
-    # R-squared (결정 계수)
-    x_reg_t = Tensor(X_reg)
-    reg_preds = reg_model.forward(x_reg_t).data
-    ss_res = np.sum((y_reg - reg_preds) ** 2)
-    ss_tot = np.sum((y_reg - np.mean(y_reg)) ** 2)
-    r_squared = float(1 - ss_res / ss_tot)
+    # 10. Feature Importance (원본 feature에 대해)
+    logistic_full = train_model(X_train, y_train, model_type="logistic")
+    importance = get_feature_importance(logistic_full, feature_names)
 
-    # ========== 4. 초기화 전략 비교 ==========
-    init_results = {}
-    for init_type in ['zero', 'random', 'he']:
-        np.random.seed(42)
-        m = Sequential(
-            Linear(2, 4, init=init_type),
-            ReLU(),
-            Linear(4, 1, init=init_type),
-            Sigmoid()
-        )
-        opt = SGD(m.parameters(), lr=0.1)
-        losses = train(m, X_xor, y_xor, binary_cross_entropy, opt, epochs=1000)
-        init_results[f"{init_type}_final_loss"] = losses[-1]
+    # 11. PCA variance
+    pca_variance = get_pca_variance(pca)
+    total_var = round(float(sum(pca.explained_variance_ratio_)), 4)
 
-    # ========== 5. 성능 진단 ==========
-    # 회귀 데이터 분할
-    n = len(X_reg)
-    split = int(n * 0.8)
-    X_train_diag = X_reg[:split]
-    y_train_diag = y_reg[:split]
-    X_test_diag = X_reg[split:]
-    y_test_diag = y_reg[split:]
+    # 12. K-Means 클러스터링
+    clustering = cluster_features(X_scaled, n_clusters=3)
 
-    np.random.seed(42)
-    diag_model = Sequential(
-        Linear(2, 8, init='he'),
-        ReLU(),
-        Linear(8, 1, init='he')
-    )
-    opt_diag = SGD(diag_model.parameters(), lr=0.01)
-    train(diag_model, X_train_diag, y_train_diag, mse_loss, opt_diag, epochs=500)
+    # 13. 신규 고객 리스크 판정
+    with open(threshold_path, "r", encoding="utf-8") as f:
+        threshold_config = json.load(f)
 
-    diag_train_loss, diag_test_loss = compute_train_test_loss(
-        diag_model, X_train_diag, y_train_diag, X_test_diag, y_test_diag, mse_loss
-    )
-    diagnosis = diagnose_bias_variance(diag_train_loss, diag_test_loss)
+    loan_ids, X_new_scaled = load_new_customers(new_csv_path, scaler)
+    X_new_pca = pca.transform(X_new_scaled)
+    probabilities = predict_risk(best_model, X_new_pca)
+    risk_levels = classify_risk_level(probabilities, threshold_config)
+    report = generate_report(loan_ids, probabilities, risk_levels)
 
-    # ========== 6. 학습 곡선 ==========
-    def model_factory():
-        np.random.seed(42)
-        return Sequential(
-            Linear(2, 8, init='he'),
-            ReLU(),
-            Linear(8, 1, init='he')
-        )
+    # 리스크 분포
+    risk_dist = {"안전": 0, "주의": 0, "위험": 0}
+    for level in risk_levels:
+        risk_dist[level] += 1
 
-    def optimizer_factory(params):
-        return SGD(params, lr=0.01)
-
-    lc = learning_curve(model_factory, X_reg, y_reg, mse_loss, optimizer_factory,
-                        epochs=200, train_sizes=[0.2, 0.4, 0.6, 0.8, 1.0])
-
-    # ========== 결과 생성 ==========
-    def r6(val):
-        """소수점 6자리로 반올림."""
-        if isinstance(val, list):
-            return [r6(v) for v in val]
-        return round(float(val), 6)
-
+    # 14. 결과 저장
     result = {
-        "xor_final_loss": r6(xor_final_loss),
-        "xor_predictions": [r6(p) for p in xor_predictions],
-        "xor_accuracy": r6(xor_accuracy),
-        "gradient_check_max_error": r6(max_error),
-        "gradient_check_passed": gradient_check_passed,
-        "regression_final_loss": r6(regression_final_loss),
-        "regression_r_squared": r6(r_squared),
-        "init_comparison": {k: r6(v) for k, v in init_results.items()},
-        "diagnostics": {
-            "train_loss": r6(diag_train_loss),
-            "test_loss": r6(diag_test_loss),
-            "diagnosis": diagnosis
+        "preprocessing": {
+            "original_shape": original_shape,
+            "missing_values_before": missing_before,
+            "missing_values_after": missing_after,
+            "scaled_mean_abs_max": scaled_mean_abs_max,
         },
-        "learning_curve": {
-            "train_sizes": r6(lc["train_sizes"]),
-            "train_losses": r6(lc["train_losses"]),
-            "val_losses": r6(lc["val_losses"])
-        }
+        "model_logistic": logistic_metrics,
+        "model_ridge": ridge_metrics,
+        "best_model": best_model_name,
+        "pca": {
+            "n_components_selected": int(pca.n_components_),
+            "total_variance_explained": total_var,
+            "variance_ratios": pca_variance,
+        },
+        "feature_importance": importance,
+        "clustering": {
+            "n_clusters": 3,
+            "cluster_counts": clustering["cluster_counts"],
+            "inertia": clustering["inertia"],
+        },
+        "new_customer_predictions": {
+            "total_customers": len(loan_ids),
+            "risk_distribution": risk_dist,
+            "predictions": report,
+        },
     }
 
     output_path = os.path.join(project_dir, "output", "result_q5.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
-    print(f"Result saved to {output_path}")
-    print(json.dumps(result, indent=2))
+    print(f"result_q5.json saved to {output_path}")
+    return result
 
 
 if __name__ == "__main__":

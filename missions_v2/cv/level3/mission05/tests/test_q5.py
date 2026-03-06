@@ -1,292 +1,390 @@
-"""Validator for Exam 5: Mini Deep Learning Framework + Performance Diagnostics.
+"""
+Q5 금융 리스크 예측 + 모델 해석 — pytest 검증 (18개 테스트, 정량적 검증만)
 
-Test groups:
-- TestStructure (3): AST-based code structure checks
-- TestTensor (4): Tensor operations and backward
-- TestLayers (2): Linear and Sequential forward
-- TestTrainer (1): Training produces decreasing losses
-- TestDiagnostics (2): diagnose_bias_variance and gradient_check
-- TestResult (2): result_q5.json structure and values
+검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
+제출물: preprocessor.py, model.py, interpreter.py, main.py, result_q5.json (5파일)
 """
 import ast
+import importlib
 import json
 import os
 import sys
 
 import numpy as np
+import pandas as pd
 import pytest
 
+_SUBMISSION_DIR = None
+_MISSION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DATA_DIR = os.path.join(_MISSION_DIR, "data")
+_CSV_PATH = os.path.join(_DATA_DIR, "loan_data.csv")
+_NEW_CSV_PATH = os.path.join(_DATA_DIR, "new_customers.csv")
+_THRESHOLD_PATH = os.path.join(_DATA_DIR, "threshold_config.json")
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
-def _add_submission_to_path(submission_dir):
-    src_dir = os.path.join(submission_dir, "src")
+@pytest.fixture(autouse=True, scope="module")
+def _configure(submission_dir):
+    global _SUBMISSION_DIR
+    _SUBMISSION_DIR = submission_dir
+
+
+def _import_module(module_name):
+    src_dir = os.path.join(_SUBMISSION_DIR, "src")
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
-
-
-def _load_module(submission_dir, module_name):
-    """Import a module from submission_dir/src."""
-    _add_submission_to_path(submission_dir)
     if module_name in sys.modules:
         del sys.modules[module_name]
-    mod = __import__(module_name)
-    return mod
+    return importlib.import_module(module_name)
 
 
-# ===========================================================================
-# TestStructure: AST checks (3 tests)
-# ===========================================================================
+def _parse_ast(filename):
+    path = os.path.join(_SUBMISSION_DIR, "src", filename)
+    assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
+    with open(path, "r", encoding="utf-8") as f:
+        source = f.read()
+    return ast.parse(source, filename=path), source
+
+
+# ========================================================================
+# TestStructure — 코드 구조 검증 (4개)
+# ========================================================================
 
 class TestStructure:
-    """AST-based structure checks on submitted source files."""
+    def test_preprocessor_functions(self):
+        """preprocessor.py에 필수 함수 4개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("preprocessor.py")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        required = {"load_data", "handle_missing", "encode_categoricals", "scale_features"}
+        missing = required - func_names
+        assert not missing, f"preprocessor.py 누락 함수: {missing}"
 
-    def _parse(self, submission_dir, filename):
-        path = os.path.join(submission_dir, "src", filename)
-        assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
-        with open(path, "r", encoding="utf-8") as f:
-            return ast.parse(f.read(), filename)
+    def test_model_functions(self):
+        """model.py에 필수 함수 4개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("model.py")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        required = {"split_data", "apply_pca", "train_model", "evaluate_model"}
+        missing = required - func_names
+        assert not missing, f"model.py 누락 함수: {missing}"
 
-    def _class_names(self, tree):
-        return [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+    def test_interpreter_functions(self):
+        """interpreter.py에 필수 함수 3개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("interpreter.py")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        required = {"get_feature_importance", "get_pca_variance", "cluster_features"}
+        missing = required - func_names
+        assert not missing, f"interpreter.py 누락 함수: {missing}"
 
-    def _func_names_in_class(self, tree, class_name):
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef) and node.name == class_name:
-                return [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-        return []
+    def test_predictor_functions(self):
+        """predictor.py에 필수 함수 4개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("predictor.py")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        required = {"load_new_customers", "predict_risk", "classify_risk_level", "generate_report"}
+        missing = required - func_names
+        assert not missing, f"predictor.py 누락 함수: {missing}"
 
-    def _top_func_names(self, tree):
-        return [n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-
-    def test_tensor_structure(self, submission_dir):
-        """tensor.py: Tensor class with __add__, __mul__, __matmul__, relu, sigmoid, backward"""
-        tree = self._parse(submission_dir, "tensor.py")
-        classes = self._class_names(tree)
-        assert "Tensor" in classes, "Tensor class not found"
-        methods = self._func_names_in_class(tree, "Tensor")
-        for m in ["__add__", "__mul__", "__matmul__", "relu", "sigmoid", "backward"]:
-            assert m in methods, f"Tensor.{m} not found"
-
-    def test_layers_structure(self, submission_dir):
-        """layers.py: Linear and Sequential classes"""
-        tree = self._parse(submission_dir, "layers.py")
-        classes = self._class_names(tree)
-        assert "Linear" in classes, "Linear class not found"
-        assert "Sequential" in classes, "Sequential class not found"
-        lin_methods = self._func_names_in_class(tree, "Linear")
-        assert "forward" in lin_methods, "Linear.forward not found"
-        assert "parameters" in lin_methods, "Linear.parameters not found"
-
-    def test_diagnostics_structure(self, submission_dir):
-        """diagnostics.py: diagnose_bias_variance function"""
-        tree = self._parse(submission_dir, "diagnostics.py")
-        funcs = self._top_func_names(tree)
-        assert "diagnose_bias_variance" in funcs, "diagnose_bias_variance function not found"
-
-
-# ===========================================================================
-# TestTensor: Tensor operations (4 tests)
-# ===========================================================================
-
-class TestTensor:
-    """Test Tensor operations and backward pass."""
-
-    def test_add_mul_matmul(self, submission_dir):
-        """add/mul/matmul produce correct values"""
-        tensor_mod = _load_module(submission_dir, "tensor")
-        Tensor = tensor_mod.Tensor
-
-        a = Tensor(np.array([[1.0, 2.0], [3.0, 4.0]]))
-        b = Tensor(np.array([[5.0, 6.0], [7.0, 8.0]]))
-
-        c = a + b
-        np.testing.assert_allclose(c.data, [[6, 8], [10, 12]])
-
-        d = a * b
-        np.testing.assert_allclose(d.data, [[5, 12], [21, 32]])
-
-        e = a @ b
-        np.testing.assert_allclose(e.data, [[19, 22], [43, 50]])
-
-    def test_backward_gradients(self, submission_dir):
-        """backward computes correct gradients for simple expression"""
-        tensor_mod = _load_module(submission_dir, "tensor")
-        Tensor = tensor_mod.Tensor
-
-        # f(x) = sum(x * x) => df/dx = 2x
-        x = Tensor(np.array([1.0, 2.0, 3.0]), requires_grad=True)
-        y = (x * x).sum()
-        y.backward()
-        np.testing.assert_allclose(x.grad, [2.0, 4.0, 6.0], atol=1e-6)
-
-    def test_relu_sigmoid(self, submission_dir):
-        """relu and sigmoid correct behavior"""
-        tensor_mod = _load_module(submission_dir, "tensor")
-        Tensor = tensor_mod.Tensor
-
-        x = Tensor(np.array([-1.0, 0.0, 1.0, 2.0]))
-        r = x.relu()
-        np.testing.assert_allclose(r.data, [0.0, 0.0, 1.0, 2.0])
-
-        s = x.sigmoid()
-        expected = 1.0 / (1.0 + np.exp(-np.array([-1.0, 0.0, 1.0, 2.0])))
-        np.testing.assert_allclose(s.data, expected, atol=1e-6)
-
-    def test_sum_backward(self, submission_dir):
-        """sum backward produces ones gradient"""
-        tensor_mod = _load_module(submission_dir, "tensor")
-        Tensor = tensor_mod.Tensor
-
-        x = Tensor(np.array([[1.0, 2.0], [3.0, 4.0]]), requires_grad=True)
-        s = x.sum()
-        s.backward()
-        np.testing.assert_allclose(x.grad, np.ones((2, 2)))
+    def test_main_function(self):
+        """main.py에 main() 함수가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("main.py")
+        func_names = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+        }
+        assert "main" in func_names, "main.py에 main() 함수 없음"
 
 
-# ===========================================================================
-# TestLayers (2 tests)
-# ===========================================================================
+# ========================================================================
+# TestPreprocessor — 전처리 기능 검증 (4개)
+# ========================================================================
 
-class TestLayers:
-    """Test Linear and Sequential layers."""
+class TestPreprocessor:
+    def test_load_data(self):
+        """load_data()가 올바른 (X, y) 튜플을 반환하는지 확인"""
+        mod = _import_module("preprocessor")
+        X, y = mod.load_data(_CSV_PATH)
+        assert isinstance(X, pd.DataFrame), "X가 DataFrame이 아닙니다"
+        assert X.shape == (200, 9), f"X shape 오류: {X.shape}, 기대: (200, 9)"
+        assert len(y) == 200, f"y 길이 오류: {len(y)}"
+        assert "loan_id" not in X.columns, "loan_id 컬럼이 제거되지 않았습니다"
+        assert "risk_label" not in X.columns, "risk_label이 X에 포함되어 있습니다"
 
-    def test_linear_forward_shape(self, submission_dir):
-        """Linear forward produces correct output shape"""
-        _add_submission_to_path(submission_dir)
-        layers_mod = _load_module(submission_dir, "layers")
-        tensor_mod = _load_module(submission_dir, "tensor")
+    def test_handle_missing(self):
+        """handle_missing()이 결측값을 처리하는지 확인"""
+        mod = _import_module("preprocessor")
+        X, _ = mod.load_data(_CSV_PATH)
+        assert X.isnull().sum().sum() > 0, "원본 데이터에 결측값이 없습니다"
+        X_clean = mod.handle_missing(X)
+        assert X_clean.isnull().sum().sum() == 0, "결측값이 남아 있습니다"
+        assert X_clean.shape == X.shape, f"shape 변경됨: {X_clean.shape}"
 
-        np.random.seed(0)
-        layer = layers_mod.Linear(3, 5, init='he')
-        x = tensor_mod.Tensor(np.random.randn(4, 3))
-        out = layer.forward(x)
-        assert out.shape == (4, 5), f"Expected (4,5), got {out.shape}"
+    def test_encode_categoricals(self):
+        """encode_categoricals()가 DataFrame을 반환하는지 확인"""
+        mod = _import_module("preprocessor")
+        X, _ = mod.load_data(_CSV_PATH)
+        X_clean = mod.handle_missing(X)
+        X_enc = mod.encode_categoricals(X_clean)
+        assert isinstance(X_enc, pd.DataFrame), "반환값이 DataFrame이 아닙니다"
+        assert X_enc.shape == X_clean.shape, f"shape 변경됨: {X_enc.shape}"
 
-    def test_sequential_forward(self, submission_dir):
-        """Sequential forward chains layers"""
-        _add_submission_to_path(submission_dir)
-        layers_mod = _load_module(submission_dir, "layers")
-        tensor_mod = _load_module(submission_dir, "tensor")
-
-        np.random.seed(0)
-        model = layers_mod.Sequential(
-            layers_mod.Linear(2, 4, init='he'),
-            layers_mod.ReLU(),
-            layers_mod.Linear(4, 1, init='he')
-        )
-        x = tensor_mod.Tensor(np.random.randn(3, 2))
-        out = model.forward(x)
-        assert out.shape == (3, 1), f"Expected (3,1), got {out.shape}"
-        assert len(model.parameters()) == 4, "Expected 4 parameters (2 layers x 2)"
-
-
-# ===========================================================================
-# TestTrainer (1 test)
-# ===========================================================================
-
-class TestTrainer:
-    """Test training utilities."""
-
-    def test_train_decreasing_loss(self, submission_dir):
-        """train() returns decreasing losses on simple problem"""
-        _add_submission_to_path(submission_dir)
-        tensor_mod = _load_module(submission_dir, "tensor")
-        layers_mod = _load_module(submission_dir, "layers")
-        trainer_mod = _load_module(submission_dir, "trainer")
-
-        np.random.seed(42)
-        model = layers_mod.Sequential(
-            layers_mod.Linear(2, 4, init='he'),
-            layers_mod.ReLU(),
-            layers_mod.Linear(4, 1, init='he')
-        )
-        X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=np.float64)
-        y = np.array([[0], [1], [1], [0]], dtype=np.float64)
-
-        optimizer = trainer_mod.SGD(model.parameters(), lr=0.1)
-        losses = trainer_mod.train(model, X, y, layers_mod.binary_cross_entropy,
-                                   optimizer, epochs=200)
-        assert len(losses) == 200
-        assert np.mean(losses[:10]) > np.mean(losses[-10:]), \
-            "Loss did not decrease during training"
+    def test_scale_features(self):
+        """scale_features()가 StandardScaler로 스케일링하는지 확인"""
+        mod = _import_module("preprocessor")
+        X, _ = mod.load_data(_CSV_PATH)
+        X_clean = mod.handle_missing(X)
+        X_enc = mod.encode_categoricals(X_clean)
+        scaled, scaler = mod.scale_features(X_enc)
+        assert scaled.shape == (200, 9), f"scaled shape 오류: {scaled.shape}"
+        # StandardScaler 결과: 평균 ~0
+        col_means = np.abs(np.mean(scaled, axis=0))
+        assert np.max(col_means) < 1e-10, f"스케일링 후 평균이 0이 아닙니다: {col_means}"
 
 
-# ===========================================================================
-# TestDiagnostics (2 tests)
-# ===========================================================================
+# ========================================================================
+# TestModel — 모델 학습/평가 검증 (4개)
+# ========================================================================
 
-class TestDiagnostics:
-    """Test diagnostics functions."""
+class TestModel:
+    @staticmethod
+    def _get_scaled_data():
+        prep = _import_module("preprocessor")
+        X, y = prep.load_data(_CSV_PATH)
+        X = prep.handle_missing(X)
+        X = prep.encode_categoricals(X)
+        X_scaled, _ = prep.scale_features(X)
+        return X_scaled, y
 
-    def test_diagnose_bias_variance(self, submission_dir):
-        """diagnose_bias_variance returns correct strings"""
-        _add_submission_to_path(submission_dir)
-        diag_mod = _load_module(submission_dir, "diagnostics")
+    def test_split_data(self):
+        """split_data()가 70/30 stratified split을 수행하는지 확인"""
+        X_scaled, y = self._get_scaled_data()
+        mod = _import_module("model")
+        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
+        assert X_train.shape[0] == 140, f"X_train rows: {X_train.shape[0]}, 기대: 140"
+        assert X_test.shape[0] == 60, f"X_test rows: {X_test.shape[0]}, 기대: 60"
+        # stratify 확인: 테스트셋의 양성 비율이 전체와 유사해야 함
+        full_ratio = y.sum() / len(y)
+        test_ratio = y_test.sum() / len(y_test)
+        assert abs(full_ratio - test_ratio) < 0.05, f"stratify 미적용: 전체={full_ratio:.3f}, 테스트={test_ratio:.3f}"
 
-        assert diag_mod.diagnose_bias_variance(0.5, 0.6) == "high_bias"
-        assert diag_mod.diagnose_bias_variance(0.05, 0.3) == "high_variance"
-        assert diag_mod.diagnose_bias_variance(0.05, 0.08) == "good_fit"
+    def test_apply_pca(self):
+        """apply_pca()가 PCA를 올바르게 적용하는지 확인"""
+        X_scaled, y = self._get_scaled_data()
+        mod = _import_module("model")
+        X_train, X_test, _, _ = mod.split_data(X_scaled, y)
+        X_train_pca, X_test_pca, pca = mod.apply_pca(X_train, X_test)
+        assert X_train_pca.shape[1] == X_test_pca.shape[1], "PCA 차원 불일치"
+        assert X_train_pca.shape[1] < 9, f"PCA가 차원을 줄이지 않음: {X_train_pca.shape[1]}"
+        total_var = sum(pca.explained_variance_ratio_)
+        assert total_var >= 0.95, f"총 분산 설명 비율 부족: {total_var:.4f}"
 
-    def test_gradient_check(self, submission_dir):
-        """gradient_check works on simple function"""
-        _add_submission_to_path(submission_dir)
-        autograd_mod = _load_module(submission_dir, "autograd")
-        tensor_mod = _load_module(submission_dir, "tensor")
+    def test_train_logistic(self):
+        """LogisticRegression 학습 및 평가 검증"""
+        X_scaled, y = self._get_scaled_data()
+        mod = _import_module("model")
+        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
+        X_train_pca, X_test_pca, _ = mod.apply_pca(X_train, X_test)
+        model = mod.train_model(X_train_pca, y_train, model_type="logistic")
+        metrics = mod.evaluate_model(model, X_test_pca, y_test)
+        assert "accuracy" in metrics, "accuracy 키 없음"
+        assert "f1_macro" in metrics, "f1_macro 키 없음"
+        assert metrics["accuracy"] >= 0.7, f"accuracy 너무 낮음: {metrics['accuracy']}"
 
-        def f(x):
-            return (x * x).sum()
+    def test_train_ridge(self):
+        """RidgeClassifier 학습 및 평가 검증"""
+        X_scaled, y = self._get_scaled_data()
+        mod = _import_module("model")
+        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
+        X_train_pca, X_test_pca, _ = mod.apply_pca(X_train, X_test)
+        model = mod.train_model(X_train_pca, y_train, model_type="ridge")
+        metrics = mod.evaluate_model(model, X_test_pca, y_test)
+        assert "accuracy" in metrics, "accuracy 키 없음"
+        assert metrics["accuracy"] >= 0.7, f"accuracy 너무 낮음: {metrics['accuracy']}"
 
-        x = np.array([1.0, 2.0, 3.0])
-        err = autograd_mod.gradient_check(f, x)
-        assert err < 1e-4, f"Gradient check error too large: {err}"
+
+# ========================================================================
+# TestInterpreter — 모델 해석 검증 (3개)
+# ========================================================================
+
+class TestInterpreter:
+    @staticmethod
+    def _get_model_and_data():
+        prep = _import_module("preprocessor")
+        mod = _import_module("model")
+        X, y = prep.load_data(_CSV_PATH)
+        X = prep.handle_missing(X)
+        X = prep.encode_categoricals(X)
+        feature_names = list(X.columns)
+        X_scaled, _ = prep.scale_features(X)
+        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
+        model = mod.train_model(X_train, y_train, model_type="logistic")
+        X_train_pca, X_test_pca, pca = mod.apply_pca(X_train, X_test)
+        return model, pca, X_scaled, feature_names
+
+    def test_feature_importance(self):
+        """get_feature_importance()가 올바른 형식을 반환하는지 확인"""
+        model, _, X_scaled, feature_names = self._get_model_and_data()
+        interp = _import_module("interpreter")
+        importance = interp.get_feature_importance(model, feature_names)
+        assert isinstance(importance, list), "반환값이 list가 아닙니다"
+        assert len(importance) == 9, f"feature 수 오류: {len(importance)}, 기대: 9"
+        for item in importance:
+            assert "feature" in item, "feature 키 없음"
+            assert "importance" in item, "importance 키 없음"
+            assert item["importance"] >= 0, "importance가 음수"
+        # 내림차순 확인
+        vals = [item["importance"] for item in importance]
+        assert vals == sorted(vals, reverse=True), "절댓값 내림차순 정렬이 아닙니다"
+
+    def test_pca_variance(self):
+        """get_pca_variance()가 올바른 형식을 반환하는지 확인"""
+        _, pca, _, _ = self._get_model_and_data()
+        interp = _import_module("interpreter")
+        variance = interp.get_pca_variance(pca)
+        assert isinstance(variance, list), "반환값이 list가 아닙니다"
+        assert len(variance) > 0, "빈 리스트입니다"
+        total = sum(item["variance_ratio"] for item in variance)
+        assert total >= 0.95, f"총 분산 설명 비율 부족: {total:.4f}"
+        for item in variance:
+            assert "component" in item, "component 키 없음"
+            assert "variance_ratio" in item, "variance_ratio 키 없음"
+
+    def test_clustering(self):
+        """cluster_features()가 올바른 형식을 반환하는지 확인"""
+        _, _, X_scaled, _ = self._get_model_and_data()
+        interp = _import_module("interpreter")
+        result = interp.cluster_features(X_scaled, n_clusters=3)
+        assert "labels" in result, "labels 키 없음"
+        assert "cluster_counts" in result, "cluster_counts 키 없음"
+        assert "inertia" in result, "inertia 키 없음"
+        assert len(result["labels"]) == 200, f"labels 길이: {len(result['labels'])}, 기대: 200"
+        assert len(result["cluster_counts"]) == 3, f"클러스터 수: {len(result['cluster_counts'])}, 기대: 3"
+        total_count = sum(result["cluster_counts"].values())
+        assert total_count == 200, f"클러스터 총 개수: {total_count}, 기대: 200"
+        assert result["inertia"] > 0, "inertia가 0 이하"
 
 
-# ===========================================================================
-# TestResult (2 tests)
-# ===========================================================================
+# ========================================================================
+# TestPredictor — 리스크 판정 서비스 검증 (3개)
+# ========================================================================
+
+class TestPredictor:
+    @staticmethod
+    def _get_model_and_scaler():
+        prep = _import_module("preprocessor")
+        mod = _import_module("model")
+        X, y = prep.load_data(_CSV_PATH)
+        X = prep.handle_missing(X)
+        X = prep.encode_categoricals(X)
+        X_scaled, scaler = prep.scale_features(X)
+        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
+        X_train_pca, X_test_pca, pca = mod.apply_pca(X_train, X_test)
+        model = mod.train_model(X_train_pca, y_train, model_type="logistic")
+        return model, scaler, pca
+
+    def test_load_new_customers(self):
+        """load_new_customers()가 올바른 형식을 반환하는지 확인"""
+        _, scaler, _ = self._get_model_and_scaler()
+        pred_mod = _import_module("predictor")
+        loan_ids, X_new = pred_mod.load_new_customers(_NEW_CSV_PATH, scaler)
+        assert isinstance(loan_ids, list), "loan_ids가 list가 아닙니다"
+        assert len(loan_ids) == 20, f"loan_ids 길이: {len(loan_ids)}, 기대: 20"
+        assert X_new.shape[0] == 20, f"X_new 행 수: {X_new.shape[0]}, 기대: 20"
+        assert X_new.shape[1] == 9, f"X_new 열 수: {X_new.shape[1]}, 기대: 9"
+        assert not np.any(np.isnan(X_new)), "스케일링 후 NaN이 남아 있습니다"
+
+    def test_predict_and_classify(self):
+        """predict_risk()와 classify_risk_level()이 올바른 결과를 반환하는지 확인"""
+        model, scaler, pca = self._get_model_and_scaler()
+        pred_mod = _import_module("predictor")
+        loan_ids, X_new = pred_mod.load_new_customers(_NEW_CSV_PATH, scaler)
+        X_new_pca = pca.transform(X_new)
+        probs = pred_mod.predict_risk(model, X_new_pca)
+        assert len(probs) == 20, f"확률 길이: {len(probs)}, 기대: 20"
+        assert all(0 <= p <= 1 for p in probs), "확률 범위 오류"
+
+        with open(_THRESHOLD_PATH, "r") as f:
+            tc = json.load(f)
+        levels = pred_mod.classify_risk_level(probs, tc)
+        assert len(levels) == 20, f"등급 길이: {len(levels)}, 기대: 20"
+        assert all(l in ("안전", "주의", "위험") for l in levels), "유효하지 않은 등급"
+
+    def test_generate_report(self):
+        """generate_report()가 올바른 형식의 리포트를 반환하는지 확인"""
+        pred_mod = _import_module("predictor")
+        loan_ids = ["N0001", "N0002"]
+        probs = np.array([0.2, 0.7])
+        levels = ["안전", "위험"]
+        report = pred_mod.generate_report(loan_ids, probs, levels)
+        assert isinstance(report, list), "반환값이 list가 아닙니다"
+        assert len(report) == 2, f"리포트 길이: {len(report)}, 기대: 2"
+        for item in report:
+            assert "loan_id" in item, "loan_id 키 없음"
+            assert "risk_probability" in item, "risk_probability 키 없음"
+            assert "risk_level" in item, "risk_level 키 없음"
+
+
+# ========================================================================
+# TestResult — result_q5.json 결과 검증 (4개)
+# ========================================================================
 
 class TestResult:
-    """Validate result_q5.json structure and values."""
-
-    def _load_result(self, submission_dir):
-        path = os.path.join(submission_dir, "output", "result_q5.json")
-        assert os.path.isfile(path), "output/result_q5.json 파일 없음"
+    @staticmethod
+    def _load_result():
+        path = os.path.join(_SUBMISSION_DIR, "output", "result_q5.json")
+        assert os.path.isfile(path), f"result_q5.json 없음: {path}"
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def test_result_structure(self, submission_dir):
-        """result_q5.json has required keys and types"""
-        result = self._load_result(submission_dir)
-        required_keys = [
-            "xor_final_loss", "xor_predictions", "xor_accuracy",
-            "gradient_check_max_error", "gradient_check_passed",
-            "regression_final_loss", "regression_r_squared",
-            "init_comparison", "diagnostics", "learning_curve"
-        ]
-        for k in required_keys:
-            assert k in result, f"Missing key: {k}"
+    def test_result_structure(self):
+        """result_q5.json의 최상위 키 구조 확인"""
+        result = self._load_result()
+        required_keys = {"preprocessing", "model_logistic", "model_ridge",
+                         "best_model", "pca", "feature_importance", "clustering",
+                         "new_customer_predictions"}
+        missing = required_keys - set(result.keys())
+        assert not missing, f"누락 키: {missing}"
 
-        assert isinstance(result["xor_predictions"], list)
-        assert len(result["xor_predictions"]) == 4
-        assert isinstance(result["gradient_check_passed"], bool)
-        assert isinstance(result["init_comparison"], dict)
-        assert isinstance(result["diagnostics"], dict)
-        assert "diagnosis" in result["diagnostics"]
-        assert isinstance(result["learning_curve"], dict)
+    def test_preprocessing_values(self):
+        """전처리 결과 값 검증"""
+        result = self._load_result()
+        prep = result["preprocessing"]
+        assert prep["original_shape"] == [200, 9], f"original_shape 오류: {prep['original_shape']}"
+        assert prep["missing_values_before"] == 10, f"missing_values_before 오류: {prep['missing_values_before']}"
+        assert prep["missing_values_after"] == 0, f"missing_values_after 오류: {prep['missing_values_after']}"
 
-    def test_result_values(self, submission_dir):
-        """result_q5.json values meet requirements"""
-        result = self._load_result(submission_dir)
+    def test_model_metrics_values(self):
+        """모델 성능 지표 범위 검증"""
+        result = self._load_result()
+        for model_key in ("model_logistic", "model_ridge"):
+            metrics = result[model_key]
+            for metric_key in ("accuracy", "precision", "recall", "f1_macro"):
+                assert metric_key in metrics, f"{model_key}.{metric_key} 없음"
+                val = metrics[metric_key]
+                assert 0.0 <= val <= 1.0, f"{model_key}.{metric_key} 범위 오류: {val}"
+            assert metrics["accuracy"] >= 0.7, f"{model_key} accuracy 너무 낮음: {metrics['accuracy']}"
 
-        assert result["xor_accuracy"] >= 0.75, \
-            f"XOR accuracy {result['xor_accuracy']} < 0.75"
-        assert result["gradient_check_passed"] is True, \
-            "Gradient check did not pass"
-        assert result["xor_final_loss"] < 0.5, \
-            f"XOR loss {result['xor_final_loss']} too high"
-        assert result["diagnostics"]["diagnosis"] in \
-            ["high_bias", "high_variance", "good_fit"], \
-            f"Invalid diagnosis: {result['diagnostics']['diagnosis']}"
+    def test_new_customer_predictions(self):
+        """신규 고객 리스크 판정 결과 검증"""
+        result = self._load_result()
+        ncp = result["new_customer_predictions"]
+        assert ncp["total_customers"] == 20, f"총 고객 수 오류: {ncp['total_customers']}"
+        dist = ncp["risk_distribution"]
+        assert all(k in dist for k in ("안전", "주의", "위험")), "리스크 분포에 필수 등급 누락"
+        assert sum(dist.values()) == 20, f"분포 합계 오류: {sum(dist.values())}"
+        preds = ncp["predictions"]
+        assert len(preds) == 20, f"예측 결과 수 오류: {len(preds)}"
+        for p in preds:
+            assert "loan_id" in p, "loan_id 키 없음"
+            assert "risk_probability" in p, "risk_probability 키 없음"
+            assert "risk_level" in p, "risk_level 키 없음"
+            assert p["risk_level"] in ("안전", "주의", "위험"), f"유효하지 않은 등급: {p['risk_level']}"

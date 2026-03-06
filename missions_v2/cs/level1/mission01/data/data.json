@@ -11,9 +11,9 @@
         "line":  [[0, 0, 0], [1, 1, 1], [0, 0, 0]]
     },
     "labels": {
-        "IMG_01": "cross_pattern",
-        "Img_02": "block_pattern",
+        "img_01": "cross_pattern",
+        "img_02": "block_pattern",
         "img_03": "line_pattern",
-        "IMG_04": "block_pattern"
+        "img_04": "block_pattern"
     }
 }

@@ -1,8 +1,8 @@
 """
-Q4 금융 리스크 예측 + 모델 해석 — pytest 검증 (18개 테스트, 정량적 검증만)
+Q4 CV — pytest 검증 (15개 테스트, 정량적 검증만)
 
 검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
-제출물: preprocessor.py, model.py, interpreter.py, main.py, result_q4.json (5파일)
+제출물: conv2d.py, counter.py, metrics.py, main.py, result_q4.json (5파일)
 """
 import ast
 import importlib
@@ -11,13 +11,13 @@ import os
 import sys
 
 import numpy as np
-import pandas as pd
 import pytest
 
 _SUBMISSION_DIR = None
 _MISSION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DATA_DIR = os.path.join(_MISSION_DIR, "data")
-_CSV_PATH = os.path.join(_DATA_DIR, "loan_data.csv")
+_IMAGES_DIR = os.path.join(_DATA_DIR, "images")
+_LABELS_PATH = os.path.join(_DATA_DIR, "labels.json")
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -48,216 +48,193 @@ def _parse_ast(filename):
 # ========================================================================
 
 class TestStructure:
-    def test_preprocessor_functions(self):
-        """preprocessor.py에 필수 함수 4개가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("preprocessor.py")
+    def test_conv2d_functions(self):
+        """conv2d.py에 필수 함수 7개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("conv2d.py")
         func_names = {
             node.name for node in ast.walk(tree)
             if isinstance(node, ast.FunctionDef)
         }
-        required = {"load_data", "handle_missing", "encode_categoricals", "scale_features"}
+        required = {"conv2d", "to_grayscale", "compute_edge_magnitude",
+                     "flip_horizontal", "flip_vertical",
+                     "adjust_brightness", "normalize_image"}
         missing = required - func_names
-        assert not missing, f"preprocessor.py 누락 함수: {missing}"
+        assert not missing, f"conv2d.py 누락 함수: {missing}"
 
-    def test_model_functions(self):
-        """model.py에 필수 함수 4개가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("model.py")
+    def test_no_filter2d(self):
+        """conv2d.py에서 cv2.filter2D를 사용하지 않는지 확인"""
+        _, source = _parse_ast("conv2d.py")
+        assert "filter2D" not in source, "filter2D 사용 감지 — conv2d 직접 구현 필요"
+
+    def test_counter_functions(self):
+        """counter.py에 필수 함수와 하이퍼파라미터 정의 확인"""
+        tree, source = _parse_ast("counter.py")
         func_names = {
             node.name for node in ast.walk(tree)
             if isinstance(node, ast.FunctionDef)
         }
-        required = {"split_data", "apply_pca", "train_model", "evaluate_model"}
+        required = {"count_boxes", "count_boxes_augmented",
+                     "ensemble_count", "extract_bounding_boxes"}
         missing = required - func_names
-        assert not missing, f"model.py 누락 함수: {missing}"
+        assert not missing, f"counter.py 누락 함수: {missing}"
+        assert "THRESHOLD" in source, "THRESHOLD 변수 미정의"
+        assert "MIN_AREA" in source, "MIN_AREA 변수 미정의"
 
-    def test_interpreter_functions(self):
-        """interpreter.py에 필수 함수 3개가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("interpreter.py")
+    def test_metrics_functions(self):
+        """metrics.py에 필수 함수 3개가 정의되어 있는지 확인"""
+        tree, _ = _parse_ast("metrics.py")
         func_names = {
             node.name for node in ast.walk(tree)
             if isinstance(node, ast.FunctionDef)
         }
-        required = {"get_feature_importance", "get_pca_variance", "cluster_features"}
+        required = {"compute_metrics", "find_worst_case", "compare_methods"}
         missing = required - func_names
-        assert not missing, f"interpreter.py 누락 함수: {missing}"
-
-    def test_main_function(self):
-        """main.py에 main() 함수가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("main.py")
-        func_names = {
-            node.name for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        }
-        assert "main" in func_names, "main.py에 main() 함수 없음"
+        assert not missing, f"metrics.py 누락 함수: {missing}"
 
 
 # ========================================================================
-# TestPreprocessor — 전처리 기능 검증 (4개)
+# TestConv2d — conv2d 및 이미지 처리 기능 검증 (5개)
 # ========================================================================
 
-class TestPreprocessor:
-    def test_load_data(self):
-        """load_data()가 올바른 (X, y) 튜플을 반환하는지 확인"""
-        mod = _import_module("preprocessor")
-        X, y = mod.load_data(_CSV_PATH)
-        assert isinstance(X, pd.DataFrame), "X가 DataFrame이 아닙니다"
-        assert X.shape == (200, 9), f"X shape 오류: {X.shape}, 기대: (200, 9)"
-        assert len(y) == 200, f"y 길이 오류: {len(y)}"
-        assert "loan_id" not in X.columns, "loan_id 컬럼이 제거되지 않았습니다"
-        assert "risk_label" not in X.columns, "risk_label이 X에 포함되어 있습니다"
+class TestConv2d:
+    def test_conv2d_identity(self):
+        """단위 커널(identity)에 대한 conv2d 결과 검증"""
+        mod = _import_module("conv2d")
+        image = np.array([[1, 2, 3],
+                          [4, 5, 6],
+                          [7, 8, 9]], dtype=np.float64)
+        kernel = np.array([[0, 0, 0],
+                           [0, 1, 0],
+                           [0, 0, 0]], dtype=np.float64)
+        result = mod.conv2d(image, kernel)
+        assert result.shape == (1, 1), f"shape 오류: {result.shape}"
+        assert abs(result[0, 0] - 5.0) < 1e-9, f"값 오류: {result[0, 0]}"
 
-    def test_handle_missing(self):
-        """handle_missing()이 결측값을 처리하는지 확인"""
-        mod = _import_module("preprocessor")
-        X, _ = mod.load_data(_CSV_PATH)
-        assert X.isnull().sum().sum() > 0, "원본 데이터에 결측값이 없습니다"
-        X_clean = mod.handle_missing(X)
-        assert X_clean.isnull().sum().sum() == 0, "결측값이 남아 있습니다"
-        assert X_clean.shape == X.shape, f"shape 변경됨: {X_clean.shape}"
+    def test_conv2d_sobel(self):
+        """Sobel 커널 적용 결과 검증"""
+        mod = _import_module("conv2d")
+        image = np.array([[0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0],
+                          [0, 0, 255, 0, 0],
+                          [0, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0]], dtype=np.float64)
+        result_x = mod.conv2d(image, mod.SOBEL_X)
+        result_y = mod.conv2d(image, mod.SOBEL_Y)
+        assert result_x.shape == (3, 3), f"Sobel X shape 오류: {result_x.shape}"
+        assert result_y.shape == (3, 3), f"Sobel Y shape 오류: {result_y.shape}"
+        assert abs(result_x[1, 1]) < 1e-9, f"Sobel X 중심값: {result_x[1, 1]}"
+        assert abs(result_y[1, 1]) < 1e-9, f"Sobel Y 중심값: {result_y[1, 1]}"
 
-    def test_encode_categoricals(self):
-        """encode_categoricals()가 DataFrame을 반환하는지 확인"""
-        mod = _import_module("preprocessor")
-        X, _ = mod.load_data(_CSV_PATH)
-        X_clean = mod.handle_missing(X)
-        X_enc = mod.encode_categoricals(X_clean)
-        assert isinstance(X_enc, pd.DataFrame), "반환값이 DataFrame이 아닙니다"
-        assert X_enc.shape == X_clean.shape, f"shape 변경됨: {X_enc.shape}"
+    def test_grayscale(self):
+        """그레이스케일 변환 검증"""
+        mod = _import_module("conv2d")
+        rgb = np.zeros((2, 2, 3), dtype=np.float64)
+        rgb[0, 0] = [255, 0, 0]
+        rgb[0, 1] = [0, 255, 0]
+        rgb[1, 0] = [0, 0, 255]
+        rgb[1, 1] = [255, 255, 255]
+        gray = mod.to_grayscale(rgb)
+        assert abs(gray[0, 0] - 0.299 * 255) < 1e-6, "Red 변환 오류"
+        assert abs(gray[0, 1] - 0.587 * 255) < 1e-6, "Green 변환 오류"
+        assert abs(gray[1, 0] - 0.114 * 255) < 1e-6, "Blue 변환 오류"
+        assert abs(gray[1, 1] - 255.0) < 1e-6, "White 변환 오류"
 
-    def test_scale_features(self):
-        """scale_features()가 StandardScaler로 스케일링하는지 확인"""
-        mod = _import_module("preprocessor")
-        X, _ = mod.load_data(_CSV_PATH)
-        X_clean = mod.handle_missing(X)
-        X_enc = mod.encode_categoricals(X_clean)
-        scaled, scaler = mod.scale_features(X_enc)
-        assert scaled.shape == (200, 9), f"scaled shape 오류: {scaled.shape}"
-        # StandardScaler 결과: 평균 ~0
-        col_means = np.abs(np.mean(scaled, axis=0))
-        assert np.max(col_means) < 1e-10, f"스케일링 후 평균이 0이 아닙니다: {col_means}"
+    def test_flip_operations(self):
+        """좌우/상하 반전 검증"""
+        mod = _import_module("conv2d")
+        image = np.array([[1, 2, 3],
+                          [4, 5, 6]], dtype=np.float64)
+        h_flip = mod.flip_horizontal(image)
+        assert h_flip[0, 0] == 3 and h_flip[0, 2] == 1, f"좌우 반전 오류: {h_flip}"
+        v_flip = mod.flip_vertical(image)
+        assert v_flip[0, 0] == 4 and v_flip[1, 0] == 1, f"상하 반전 오류: {v_flip}"
 
-
-# ========================================================================
-# TestModel — 모델 학습/평가 검증 (4개)
-# ========================================================================
-
-class TestModel:
-    @staticmethod
-    def _get_scaled_data():
-        prep = _import_module("preprocessor")
-        X, y = prep.load_data(_CSV_PATH)
-        X = prep.handle_missing(X)
-        X = prep.encode_categoricals(X)
-        X_scaled, _ = prep.scale_features(X)
-        return X_scaled, y
-
-    def test_split_data(self):
-        """split_data()가 70/30 stratified split을 수행하는지 확인"""
-        X_scaled, y = self._get_scaled_data()
-        mod = _import_module("model")
-        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
-        assert X_train.shape[0] == 140, f"X_train rows: {X_train.shape[0]}, 기대: 140"
-        assert X_test.shape[0] == 60, f"X_test rows: {X_test.shape[0]}, 기대: 60"
-        # stratify 확인: 테스트셋의 양성 비율이 전체와 유사해야 함
-        full_ratio = y.sum() / len(y)
-        test_ratio = y_test.sum() / len(y_test)
-        assert abs(full_ratio - test_ratio) < 0.05, f"stratify 미적용: 전체={full_ratio:.3f}, 테스트={test_ratio:.3f}"
-
-    def test_apply_pca(self):
-        """apply_pca()가 PCA를 올바르게 적용하는지 확인"""
-        X_scaled, y = self._get_scaled_data()
-        mod = _import_module("model")
-        X_train, X_test, _, _ = mod.split_data(X_scaled, y)
-        X_train_pca, X_test_pca, pca = mod.apply_pca(X_train, X_test)
-        assert X_train_pca.shape[1] == X_test_pca.shape[1], "PCA 차원 불일치"
-        assert X_train_pca.shape[1] < 9, f"PCA가 차원을 줄이지 않음: {X_train_pca.shape[1]}"
-        total_var = sum(pca.explained_variance_ratio_)
-        assert total_var >= 0.95, f"총 분산 설명 비율 부족: {total_var:.4f}"
-
-    def test_train_logistic(self):
-        """LogisticRegression 학습 및 평가 검증"""
-        X_scaled, y = self._get_scaled_data()
-        mod = _import_module("model")
-        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
-        X_train_pca, X_test_pca, _ = mod.apply_pca(X_train, X_test)
-        model = mod.train_model(X_train_pca, y_train, model_type="logistic")
-        metrics = mod.evaluate_model(model, X_test_pca, y_test)
-        assert "accuracy" in metrics, "accuracy 키 없음"
-        assert "f1_macro" in metrics, "f1_macro 키 없음"
-        assert metrics["accuracy"] >= 0.7, f"accuracy 너무 낮음: {metrics['accuracy']}"
-
-    def test_train_ridge(self):
-        """RidgeClassifier 학습 및 평가 검증"""
-        X_scaled, y = self._get_scaled_data()
-        mod = _import_module("model")
-        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
-        X_train_pca, X_test_pca, _ = mod.apply_pca(X_train, X_test)
-        model = mod.train_model(X_train_pca, y_train, model_type="ridge")
-        metrics = mod.evaluate_model(model, X_test_pca, y_test)
-        assert "accuracy" in metrics, "accuracy 키 없음"
-        assert metrics["accuracy"] >= 0.7, f"accuracy 너무 낮음: {metrics['accuracy']}"
+    def test_brightness_and_normalize(self):
+        """밝기 조절 및 정규화 검증"""
+        mod = _import_module("conv2d")
+        image = np.array([[100, 200],
+                          [50, 150]], dtype=np.float64)
+        bright = mod.adjust_brightness(image, 2.0)
+        assert bright[0, 0] == 200, f"밝기 증가 오류: {bright[0, 0]}"
+        assert bright[0, 1] == 255, f"클리핑 오류: {bright[0, 1]}"
+        normed = mod.normalize_image(image)
+        assert abs(normed.min()) < 1e-6, f"정규화 최솟값 오류: {normed.min()}"
+        assert abs(normed.max() - 255.0) < 1e-6, f"정규화 최댓값 오류: {normed.max()}"
 
 
 # ========================================================================
-# TestInterpreter — 모델 해석 검증 (3개)
+# TestCounter — counter.py 기능 검증 (3개)
 # ========================================================================
 
-class TestInterpreter:
-    @staticmethod
-    def _get_model_and_data():
-        prep = _import_module("preprocessor")
-        mod = _import_module("model")
-        X, y = prep.load_data(_CSV_PATH)
-        X = prep.handle_missing(X)
-        X = prep.encode_categoricals(X)
-        feature_names = list(X.columns)
-        X_scaled, _ = prep.scale_features(X)
-        X_train, X_test, y_train, y_test = mod.split_data(X_scaled, y)
-        model = mod.train_model(X_train, y_train, model_type="logistic")
-        X_train_pca, X_test_pca, pca = mod.apply_pca(X_train, X_test)
-        return model, pca, X_scaled, feature_names
+class TestCounter:
+    def test_ensemble_count(self):
+        """중앙값 기반 앙상블 카운팅 검증"""
+        mod = _import_module("counter")
+        assert mod.ensemble_count([1, 2, 3, 4, 5]) == 3, "홀수 개 중앙값 오류"
+        assert mod.ensemble_count([1, 2, 4, 5]) == 3, "짝수 개 중앙값 오류"
+        assert mod.ensemble_count([5, 1, 3]) == 3, "정렬 후 중앙값 오류"
 
-    def test_feature_importance(self):
-        """get_feature_importance()가 올바른 형식을 반환하는지 확인"""
-        model, _, X_scaled, feature_names = self._get_model_and_data()
-        interp = _import_module("interpreter")
-        importance = interp.get_feature_importance(model, feature_names)
-        assert isinstance(importance, list), "반환값이 list가 아닙니다"
-        assert len(importance) == 9, f"feature 수 오류: {len(importance)}, 기대: 9"
-        for item in importance:
-            assert "feature" in item, "feature 키 없음"
-            assert "importance" in item, "importance 키 없음"
-            assert item["importance"] >= 0, "importance가 음수"
-        # 내림차순 확인
-        vals = [item["importance"] for item in importance]
-        assert vals == sorted(vals, reverse=True), "절댓값 내림차순 정렬이 아닙니다"
+    def test_count_boxes_augmented(self):
+        """증강 앙상블 카운팅이 정수를 반환하는지 확인"""
+        mod = _import_module("counter")
+        img_path = os.path.join(_IMAGES_DIR, "easy_01.png")
+        result = mod.count_boxes_augmented(img_path)
+        assert isinstance(result, int), f"반환값이 정수가 아닙니다: {type(result)}"
+        assert result >= 0, f"카운팅 결과가 음수: {result}"
 
-    def test_pca_variance(self):
-        """get_pca_variance()가 올바른 형식을 반환하는지 확인"""
-        _, pca, _, _ = self._get_model_and_data()
-        interp = _import_module("interpreter")
-        variance = interp.get_pca_variance(pca)
-        assert isinstance(variance, list), "반환값이 list가 아닙니다"
-        assert len(variance) > 0, "빈 리스트입니다"
-        total = sum(item["variance_ratio"] for item in variance)
-        assert total >= 0.95, f"총 분산 설명 비율 부족: {total:.4f}"
-        for item in variance:
-            assert "component" in item, "component 키 없음"
-            assert "variance_ratio" in item, "variance_ratio 키 없음"
+    def test_bounding_boxes_format(self):
+        """바운딩 박스 추출 결과 형식 검증"""
+        mod = _import_module("counter")
+        img_path = os.path.join(_IMAGES_DIR, "easy_01.png")
+        bboxes = mod.extract_bounding_boxes(img_path)
+        assert isinstance(bboxes, list), "반환값이 list가 아닙니다"
+        assert len(bboxes) > 0, "바운딩 박스가 검출되지 않았습니다"
+        for bbox in bboxes:
+            for key in ("x_min", "y_min", "x_max", "y_max", "area"):
+                assert key in bbox, f"바운딩 박스에 {key} 키 없음"
+            assert bbox["x_min"] <= bbox["x_max"], "x_min > x_max"
+            assert bbox["y_min"] <= bbox["y_max"], "y_min > y_max"
+            assert bbox["area"] > 0, "area가 0 이하"
 
-    def test_clustering(self):
-        """cluster_features()가 올바른 형식을 반환하는지 확인"""
-        _, _, X_scaled, _ = self._get_model_and_data()
-        interp = _import_module("interpreter")
-        result = interp.cluster_features(X_scaled, n_clusters=3)
-        assert "labels" in result, "labels 키 없음"
-        assert "cluster_counts" in result, "cluster_counts 키 없음"
-        assert "inertia" in result, "inertia 키 없음"
-        assert len(result["labels"]) == 200, f"labels 길이: {len(result['labels'])}, 기대: 200"
-        assert len(result["cluster_counts"]) == 3, f"클러스터 수: {len(result['cluster_counts'])}, 기대: 3"
-        total_count = sum(result["cluster_counts"].values())
-        assert total_count == 200, f"클러스터 총 개수: {total_count}, 기대: 200"
-        assert result["inertia"] > 0, "inertia가 0 이하"
+
+# ========================================================================
+# TestMetrics — metrics.py 기능 검증 (3개)
+# ========================================================================
+
+class TestMetrics:
+    def test_compute_metrics(self):
+        """MAE/Accuracy 계산 검증"""
+        mod = _import_module("metrics")
+        preds = {"easy_01": 3, "easy_02": 5, "easy_03": 5}
+        labels = {"easy_01": 3, "easy_02": 4, "easy_03": 6}
+        result = mod.compute_metrics(preds, labels, "easy")
+        assert isinstance(result, dict), "반환값이 dict가 아닙니다"
+        assert "mae" in result, "mae 키 없음"
+        assert "accuracy" in result, "accuracy 키 없음"
+        assert abs(result["mae"] - 2 / 3) < 0.01, f"MAE 오류: {result['mae']}"
+        assert abs(result["accuracy"] - 1 / 3) < 0.01, f"Accuracy 오류: {result['accuracy']}"
+
+    def test_find_worst_case(self):
+        """worst case 이미지 찾기 검증"""
+        mod = _import_module("metrics")
+        preds = {"hard_01": 2, "hard_02": 3, "hard_03": 1}
+        labels = {"hard_01": 5, "hard_02": 7, "hard_03": 8}
+        result = mod.find_worst_case(preds, labels, "hard")
+        assert result == "hard_03", f"기대: hard_03, 결과: {result}"
+
+    def test_compare_methods(self):
+        """기본 vs 증강 방식 비교 검증"""
+        mod = _import_module("metrics")
+        base = {"easy_01": 3, "easy_02": 5}
+        aug = {"easy_01": 3, "easy_02": 4}
+        labels = {"easy_01": 3, "easy_02": 4}
+        result = mod.compare_methods(base, aug, labels)
+        assert "easy" in result, "easy 카테고리 없음"
+        easy = result["easy"]
+        for key in ("base_mae", "augmented_mae", "mae_improvement",
+                    "base_accuracy", "augmented_accuracy"):
+            assert key in easy, f"{key} 키 없음"
+        assert easy["augmented_mae"] <= easy["base_mae"], "증강 MAE가 기본보다 높음"
 
 
 # ========================================================================
@@ -272,29 +249,34 @@ class TestResult:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def test_result_structure(self):
-        """result_q4.json의 최상위 키 구조 확인"""
+    def test_valid_images_only(self):
+        """유효 이미지만 분석 확인"""
         result = self._load_result()
-        required_keys = {"preprocessing", "model_logistic", "model_ridge",
-                         "pca", "feature_importance", "clustering"}
-        missing = required_keys - set(result.keys())
-        assert not missing, f"누락 키: {missing}"
+        with open(_LABELS_PATH, "r", encoding="utf-8") as f:
+            labels = json.load(f)
+        valid = [
+            n for n in labels
+            if os.path.isfile(os.path.join(_IMAGES_DIR, f"{n}.png"))
+        ]
+        preds = result.get("predictions", {})
+        extra = set(preds.keys()) - set(valid)
+        assert not extra, f"존재하지 않는 이미지 포함: {extra}"
 
-    def test_preprocessing_values(self):
-        """전처리 결과 값 검증"""
+    def test_augmented_predictions(self):
+        """증강 카운팅 결과 포함 확인"""
         result = self._load_result()
-        prep = result["preprocessing"]
-        assert prep["original_shape"] == [200, 9], f"original_shape 오류: {prep['original_shape']}"
-        assert prep["missing_values_before"] == 10, f"missing_values_before 오류: {prep['missing_values_before']}"
-        assert prep["missing_values_after"] == 0, f"missing_values_after 오류: {prep['missing_values_after']}"
+        assert "predictions_augmented" in result, "predictions_augmented 없음"
+        aug = result["predictions_augmented"]
+        assert len(aug) > 0, "predictions_augmented가 비어 있음"
+        for name, count in aug.items():
+            assert isinstance(count, int), f"{name}: 정수가 아닙니다"
 
-    def test_model_metrics_values(self):
-        """모델 성능 지표 범위 검증"""
+    def test_method_comparison(self):
+        """방법 비교 결과 확인"""
         result = self._load_result()
-        for model_key in ("model_logistic", "model_ridge"):
-            metrics = result[model_key]
-            for metric_key in ("accuracy", "precision", "recall", "f1_macro"):
-                assert metric_key in metrics, f"{model_key}.{metric_key} 없음"
-                val = metrics[metric_key]
-                assert 0.0 <= val <= 1.0, f"{model_key}.{metric_key} 범위 오류: {val}"
-            assert metrics["accuracy"] >= 0.7, f"{model_key} accuracy 너무 낮음: {metrics['accuracy']}"
+        assert "method_comparison" in result, "method_comparison 없음"
+        comp = result["method_comparison"]
+        for cat in ("easy", "medium", "hard"):
+            assert cat in comp, f"{cat} 카테고리 없음"
+            for key in ("base_mae", "augmented_mae", "mae_improvement"):
+                assert key in comp[cat], f"{cat}.{key} 없음"

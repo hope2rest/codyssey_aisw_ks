@@ -1,4 +1,4 @@
-"""미션별 conftest — submission_dir fixture 제공"""
+"""미션별 conftest — submission_dir fixture 제공 (폴더 구조 지원)"""
 import os
 import zipfile
 
@@ -6,7 +6,6 @@ import pytest
 
 _MISSION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DEFAULT_SUBMISSION = os.path.join(_MISSION_DIR, "sample_submission")
-
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +21,7 @@ def submission_dir(request, tmp_path_factory):
         entries = os.listdir(extract_dir)
         if len(entries) == 1 and os.path.isdir(os.path.join(extract_dir, entries[0])):
             extract_dir = os.path.join(extract_dir, entries[0])
-        return extract_dir
+        resolved = extract_dir
 
     assert os.path.isdir(resolved), f"제출물 디렉토리 없음: {resolved}"
     return resolved

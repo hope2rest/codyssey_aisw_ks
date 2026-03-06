@@ -1,11 +1,14 @@
-"""
-Q3 CV — pytest 검증 (15개 테스트, 정량적 검증만)
+"""Validator for Exam 3: Mini Deep Learning Framework + Performance Diagnostics.
 
-검증 방식: AST 구조 분석 + importlib 모듈 import 후 기능 검증
-제출물: conv2d.py, counter.py, metrics.py, main.py, result_q3.json (5파일)
+Test groups:
+- TestStructure (3): AST-based code structure checks
+- TestTensor (4): Tensor operations and backward
+- TestLayers (2): Linear and Sequential forward
+- TestTrainer (1): Training produces decreasing losses
+- TestDiagnostics (2): diagnose_bias_variance and gradient_check
+- TestResult (2): result_q3.json structure and values
 """
 import ast
-import importlib
 import json
 import os
 import sys
@@ -13,270 +16,277 @@ import sys
 import numpy as np
 import pytest
 
-_SUBMISSION_DIR = None
-_MISSION_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_DATA_DIR = os.path.join(_MISSION_DIR, "data")
-_IMAGES_DIR = os.path.join(_DATA_DIR, "images")
-_LABELS_PATH = os.path.join(_DATA_DIR, "labels.json")
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-@pytest.fixture(autouse=True, scope="module")
-def _configure(submission_dir):
-    global _SUBMISSION_DIR
-    _SUBMISSION_DIR = submission_dir
-
-
-def _import_module(module_name):
-    src_dir = os.path.join(_SUBMISSION_DIR, "src")
+def _add_submission_to_path(submission_dir):
+    src_dir = os.path.join(submission_dir, "src")
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
+
+
+def _load_module(submission_dir, module_name):
+    """Import a module from submission_dir/src."""
+    _add_submission_to_path(submission_dir)
     if module_name in sys.modules:
         del sys.modules[module_name]
-    return importlib.import_module(module_name)
+    mod = __import__(module_name)
+    return mod
 
 
-def _parse_ast(filename):
-    path = os.path.join(_SUBMISSION_DIR, "src", filename)
-    assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
-    with open(path, "r", encoding="utf-8") as f:
-        source = f.read()
-    return ast.parse(source, filename=path), source
-
-
-# ========================================================================
-# TestStructure — 코드 구조 검증 (4개)
-# ========================================================================
+# ===========================================================================
+# TestStructure: AST checks (3 tests)
+# ===========================================================================
 
 class TestStructure:
-    def test_conv2d_functions(self):
-        """conv2d.py에 필수 함수 7개가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("conv2d.py")
-        func_names = {
-            node.name for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        }
-        required = {"conv2d", "to_grayscale", "compute_edge_magnitude",
-                     "flip_horizontal", "flip_vertical",
-                     "adjust_brightness", "normalize_image"}
-        missing = required - func_names
-        assert not missing, f"conv2d.py 누락 함수: {missing}"
+    """AST-based structure checks on submitted source files."""
 
-    def test_no_filter2d(self):
-        """conv2d.py에서 cv2.filter2D를 사용하지 않는지 확인"""
-        _, source = _parse_ast("conv2d.py")
-        assert "filter2D" not in source, "filter2D 사용 감지 — conv2d 직접 구현 필요"
+    def _parse(self, submission_dir, filename):
+        path = os.path.join(submission_dir, "src", filename)
+        assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
+        with open(path, "r", encoding="utf-8") as f:
+            return ast.parse(f.read(), filename)
 
-    def test_counter_functions(self):
-        """counter.py에 필수 함수와 하이퍼파라미터 정의 확인"""
-        tree, source = _parse_ast("counter.py")
-        func_names = {
-            node.name for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        }
-        required = {"count_boxes", "count_boxes_augmented",
-                     "ensemble_count", "extract_bounding_boxes"}
-        missing = required - func_names
-        assert not missing, f"counter.py 누락 함수: {missing}"
-        assert "THRESHOLD" in source, "THRESHOLD 변수 미정의"
-        assert "MIN_AREA" in source, "MIN_AREA 변수 미정의"
+    def _class_names(self, tree):
+        return [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
 
-    def test_metrics_functions(self):
-        """metrics.py에 필수 함수 3개가 정의되어 있는지 확인"""
-        tree, _ = _parse_ast("metrics.py")
-        func_names = {
-            node.name for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        }
-        required = {"compute_metrics", "find_worst_case", "compare_methods"}
-        missing = required - func_names
-        assert not missing, f"metrics.py 누락 함수: {missing}"
+    def _func_names_in_class(self, tree, class_name):
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name == class_name:
+                return [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        return []
 
+    def _top_func_names(self, tree):
+        return [n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
 
-# ========================================================================
-# TestConv2d — conv2d 및 이미지 처리 기능 검증 (5개)
-# ========================================================================
+    def test_tensor_structure(self, submission_dir):
+        """tensor.py: Tensor class with __add__, __mul__, __matmul__, relu, sigmoid, backward"""
+        tree = self._parse(submission_dir, "tensor.py")
+        classes = self._class_names(tree)
+        assert "Tensor" in classes, "Tensor class not found"
+        methods = self._func_names_in_class(tree, "Tensor")
+        for m in ["__add__", "__mul__", "__matmul__", "relu", "sigmoid", "backward"]:
+            assert m in methods, f"Tensor.{m} not found"
 
-class TestConv2d:
-    def test_conv2d_identity(self):
-        """단위 커널(identity)에 대한 conv2d 결과 검증"""
-        mod = _import_module("conv2d")
-        image = np.array([[1, 2, 3],
-                          [4, 5, 6],
-                          [7, 8, 9]], dtype=np.float64)
-        kernel = np.array([[0, 0, 0],
-                           [0, 1, 0],
-                           [0, 0, 0]], dtype=np.float64)
-        result = mod.conv2d(image, kernel)
-        assert result.shape == (1, 1), f"shape 오류: {result.shape}"
-        assert abs(result[0, 0] - 5.0) < 1e-9, f"값 오류: {result[0, 0]}"
+    def test_layers_structure(self, submission_dir):
+        """layers.py: Linear and Sequential classes"""
+        tree = self._parse(submission_dir, "layers.py")
+        classes = self._class_names(tree)
+        assert "Linear" in classes, "Linear class not found"
+        assert "Sequential" in classes, "Sequential class not found"
+        lin_methods = self._func_names_in_class(tree, "Linear")
+        assert "forward" in lin_methods, "Linear.forward not found"
+        assert "parameters" in lin_methods, "Linear.parameters not found"
 
-    def test_conv2d_sobel(self):
-        """Sobel 커널 적용 결과 검증"""
-        mod = _import_module("conv2d")
-        image = np.array([[0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0],
-                          [0, 0, 255, 0, 0],
-                          [0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0]], dtype=np.float64)
-        result_x = mod.conv2d(image, mod.SOBEL_X)
-        result_y = mod.conv2d(image, mod.SOBEL_Y)
-        assert result_x.shape == (3, 3), f"Sobel X shape 오류: {result_x.shape}"
-        assert result_y.shape == (3, 3), f"Sobel Y shape 오류: {result_y.shape}"
-        assert abs(result_x[1, 1]) < 1e-9, f"Sobel X 중심값: {result_x[1, 1]}"
-        assert abs(result_y[1, 1]) < 1e-9, f"Sobel Y 중심값: {result_y[1, 1]}"
-
-    def test_grayscale(self):
-        """그레이스케일 변환 검증"""
-        mod = _import_module("conv2d")
-        rgb = np.zeros((2, 2, 3), dtype=np.float64)
-        rgb[0, 0] = [255, 0, 0]
-        rgb[0, 1] = [0, 255, 0]
-        rgb[1, 0] = [0, 0, 255]
-        rgb[1, 1] = [255, 255, 255]
-        gray = mod.to_grayscale(rgb)
-        assert abs(gray[0, 0] - 0.299 * 255) < 1e-6, "Red 변환 오류"
-        assert abs(gray[0, 1] - 0.587 * 255) < 1e-6, "Green 변환 오류"
-        assert abs(gray[1, 0] - 0.114 * 255) < 1e-6, "Blue 변환 오류"
-        assert abs(gray[1, 1] - 255.0) < 1e-6, "White 변환 오류"
-
-    def test_flip_operations(self):
-        """좌우/상하 반전 검증"""
-        mod = _import_module("conv2d")
-        image = np.array([[1, 2, 3],
-                          [4, 5, 6]], dtype=np.float64)
-        h_flip = mod.flip_horizontal(image)
-        assert h_flip[0, 0] == 3 and h_flip[0, 2] == 1, f"좌우 반전 오류: {h_flip}"
-        v_flip = mod.flip_vertical(image)
-        assert v_flip[0, 0] == 4 and v_flip[1, 0] == 1, f"상하 반전 오류: {v_flip}"
-
-    def test_brightness_and_normalize(self):
-        """밝기 조절 및 정규화 검증"""
-        mod = _import_module("conv2d")
-        image = np.array([[100, 200],
-                          [50, 150]], dtype=np.float64)
-        bright = mod.adjust_brightness(image, 2.0)
-        assert bright[0, 0] == 200, f"밝기 증가 오류: {bright[0, 0]}"
-        assert bright[0, 1] == 255, f"클리핑 오류: {bright[0, 1]}"
-        normed = mod.normalize_image(image)
-        assert abs(normed.min()) < 1e-6, f"정규화 최솟값 오류: {normed.min()}"
-        assert abs(normed.max() - 255.0) < 1e-6, f"정규화 최댓값 오류: {normed.max()}"
+    def test_diagnostics_structure(self, submission_dir):
+        """diagnostics.py: diagnose_bias_variance function"""
+        tree = self._parse(submission_dir, "diagnostics.py")
+        funcs = self._top_func_names(tree)
+        assert "diagnose_bias_variance" in funcs, "diagnose_bias_variance function not found"
 
 
-# ========================================================================
-# TestCounter — counter.py 기능 검증 (3개)
-# ========================================================================
+# ===========================================================================
+# TestTensor: Tensor operations (4 tests)
+# ===========================================================================
 
-class TestCounter:
-    def test_ensemble_count(self):
-        """중앙값 기반 앙상블 카운팅 검증"""
-        mod = _import_module("counter")
-        assert mod.ensemble_count([1, 2, 3, 4, 5]) == 3, "홀수 개 중앙값 오류"
-        assert mod.ensemble_count([1, 2, 4, 5]) == 3, "짝수 개 중앙값 오류"
-        assert mod.ensemble_count([5, 1, 3]) == 3, "정렬 후 중앙값 오류"
+class TestTensor:
+    """Test Tensor operations and backward pass."""
 
-    def test_count_boxes_augmented(self):
-        """증강 앙상블 카운팅이 정수를 반환하는지 확인"""
-        mod = _import_module("counter")
-        img_path = os.path.join(_IMAGES_DIR, "easy_01.png")
-        result = mod.count_boxes_augmented(img_path)
-        assert isinstance(result, int), f"반환값이 정수가 아닙니다: {type(result)}"
-        assert result >= 0, f"카운팅 결과가 음수: {result}"
+    def test_add_mul_matmul(self, submission_dir):
+        """add/mul/matmul produce correct values"""
+        tensor_mod = _load_module(submission_dir, "tensor")
+        Tensor = tensor_mod.Tensor
 
-    def test_bounding_boxes_format(self):
-        """바운딩 박스 추출 결과 형식 검증"""
-        mod = _import_module("counter")
-        img_path = os.path.join(_IMAGES_DIR, "easy_01.png")
-        bboxes = mod.extract_bounding_boxes(img_path)
-        assert isinstance(bboxes, list), "반환값이 list가 아닙니다"
-        assert len(bboxes) > 0, "바운딩 박스가 검출되지 않았습니다"
-        for bbox in bboxes:
-            for key in ("x_min", "y_min", "x_max", "y_max", "area"):
-                assert key in bbox, f"바운딩 박스에 {key} 키 없음"
-            assert bbox["x_min"] <= bbox["x_max"], "x_min > x_max"
-            assert bbox["y_min"] <= bbox["y_max"], "y_min > y_max"
-            assert bbox["area"] > 0, "area가 0 이하"
+        a = Tensor(np.array([[1.0, 2.0], [3.0, 4.0]]))
+        b = Tensor(np.array([[5.0, 6.0], [7.0, 8.0]]))
 
+        c = a + b
+        np.testing.assert_allclose(c.data, [[6, 8], [10, 12]])
 
-# ========================================================================
-# TestMetrics — metrics.py 기능 검증 (3개)
-# ========================================================================
+        d = a * b
+        np.testing.assert_allclose(d.data, [[5, 12], [21, 32]])
 
-class TestMetrics:
-    def test_compute_metrics(self):
-        """MAE/Accuracy 계산 검증"""
-        mod = _import_module("metrics")
-        preds = {"easy_01": 3, "easy_02": 5, "easy_03": 5}
-        labels = {"easy_01": 3, "easy_02": 4, "easy_03": 6}
-        result = mod.compute_metrics(preds, labels, "easy")
-        assert isinstance(result, dict), "반환값이 dict가 아닙니다"
-        assert "mae" in result, "mae 키 없음"
-        assert "accuracy" in result, "accuracy 키 없음"
-        assert abs(result["mae"] - 2 / 3) < 0.01, f"MAE 오류: {result['mae']}"
-        assert abs(result["accuracy"] - 1 / 3) < 0.01, f"Accuracy 오류: {result['accuracy']}"
+        e = a @ b
+        np.testing.assert_allclose(e.data, [[19, 22], [43, 50]])
 
-    def test_find_worst_case(self):
-        """worst case 이미지 찾기 검증"""
-        mod = _import_module("metrics")
-        preds = {"hard_01": 2, "hard_02": 3, "hard_03": 1}
-        labels = {"hard_01": 5, "hard_02": 7, "hard_03": 8}
-        result = mod.find_worst_case(preds, labels, "hard")
-        assert result == "hard_03", f"기대: hard_03, 결과: {result}"
+    def test_backward_gradients(self, submission_dir):
+        """backward computes correct gradients for simple expression"""
+        tensor_mod = _load_module(submission_dir, "tensor")
+        Tensor = tensor_mod.Tensor
 
-    def test_compare_methods(self):
-        """기본 vs 증강 방식 비교 검증"""
-        mod = _import_module("metrics")
-        base = {"easy_01": 3, "easy_02": 5}
-        aug = {"easy_01": 3, "easy_02": 4}
-        labels = {"easy_01": 3, "easy_02": 4}
-        result = mod.compare_methods(base, aug, labels)
-        assert "easy" in result, "easy 카테고리 없음"
-        easy = result["easy"]
-        for key in ("base_mae", "augmented_mae", "mae_improvement",
-                    "base_accuracy", "augmented_accuracy"):
-            assert key in easy, f"{key} 키 없음"
-        assert easy["augmented_mae"] <= easy["base_mae"], "증강 MAE가 기본보다 높음"
+        # f(x) = sum(x * x) => df/dx = 2x
+        x = Tensor(np.array([1.0, 2.0, 3.0]), requires_grad=True)
+        y = (x * x).sum()
+        y.backward()
+        np.testing.assert_allclose(x.grad, [2.0, 4.0, 6.0], atol=1e-6)
+
+    def test_relu_sigmoid(self, submission_dir):
+        """relu and sigmoid correct behavior"""
+        tensor_mod = _load_module(submission_dir, "tensor")
+        Tensor = tensor_mod.Tensor
+
+        x = Tensor(np.array([-1.0, 0.0, 1.0, 2.0]))
+        r = x.relu()
+        np.testing.assert_allclose(r.data, [0.0, 0.0, 1.0, 2.0])
+
+        s = x.sigmoid()
+        expected = 1.0 / (1.0 + np.exp(-np.array([-1.0, 0.0, 1.0, 2.0])))
+        np.testing.assert_allclose(s.data, expected, atol=1e-6)
+
+    def test_sum_backward(self, submission_dir):
+        """sum backward produces ones gradient"""
+        tensor_mod = _load_module(submission_dir, "tensor")
+        Tensor = tensor_mod.Tensor
+
+        x = Tensor(np.array([[1.0, 2.0], [3.0, 4.0]]), requires_grad=True)
+        s = x.sum()
+        s.backward()
+        np.testing.assert_allclose(x.grad, np.ones((2, 2)))
 
 
-# ========================================================================
-# TestResult — result_q3.json 결과 검증 (3개)
-# ========================================================================
+# ===========================================================================
+# TestLayers (2 tests)
+# ===========================================================================
+
+class TestLayers:
+    """Test Linear and Sequential layers."""
+
+    def test_linear_forward_shape(self, submission_dir):
+        """Linear forward produces correct output shape"""
+        _add_submission_to_path(submission_dir)
+        layers_mod = _load_module(submission_dir, "layers")
+        tensor_mod = _load_module(submission_dir, "tensor")
+
+        np.random.seed(0)
+        layer = layers_mod.Linear(3, 5, init='he')
+        x = tensor_mod.Tensor(np.random.randn(4, 3))
+        out = layer.forward(x)
+        assert out.shape == (4, 5), f"Expected (4,5), got {out.shape}"
+
+    def test_sequential_forward(self, submission_dir):
+        """Sequential forward chains layers"""
+        _add_submission_to_path(submission_dir)
+        layers_mod = _load_module(submission_dir, "layers")
+        tensor_mod = _load_module(submission_dir, "tensor")
+
+        np.random.seed(0)
+        model = layers_mod.Sequential(
+            layers_mod.Linear(2, 4, init='he'),
+            layers_mod.ReLU(),
+            layers_mod.Linear(4, 1, init='he')
+        )
+        x = tensor_mod.Tensor(np.random.randn(3, 2))
+        out = model.forward(x)
+        assert out.shape == (3, 1), f"Expected (3,1), got {out.shape}"
+        assert len(model.parameters()) == 4, "Expected 4 parameters (2 layers x 2)"
+
+
+# ===========================================================================
+# TestTrainer (1 test)
+# ===========================================================================
+
+class TestTrainer:
+    """Test training utilities."""
+
+    def test_train_decreasing_loss(self, submission_dir):
+        """train() returns decreasing losses on simple problem"""
+        _add_submission_to_path(submission_dir)
+        tensor_mod = _load_module(submission_dir, "tensor")
+        layers_mod = _load_module(submission_dir, "layers")
+        trainer_mod = _load_module(submission_dir, "trainer")
+
+        np.random.seed(42)
+        model = layers_mod.Sequential(
+            layers_mod.Linear(2, 4, init='he'),
+            layers_mod.ReLU(),
+            layers_mod.Linear(4, 1, init='he')
+        )
+        X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=np.float64)
+        y = np.array([[0], [1], [1], [0]], dtype=np.float64)
+
+        optimizer = trainer_mod.SGD(model.parameters(), lr=0.1)
+        losses = trainer_mod.train(model, X, y, layers_mod.binary_cross_entropy,
+                                   optimizer, epochs=200)
+        assert len(losses) == 200
+        assert np.mean(losses[:10]) > np.mean(losses[-10:]), \
+            "Loss did not decrease during training"
+
+
+# ===========================================================================
+# TestDiagnostics (2 tests)
+# ===========================================================================
+
+class TestDiagnostics:
+    """Test diagnostics functions."""
+
+    def test_diagnose_bias_variance(self, submission_dir):
+        """diagnose_bias_variance returns correct strings"""
+        _add_submission_to_path(submission_dir)
+        diag_mod = _load_module(submission_dir, "diagnostics")
+
+        assert diag_mod.diagnose_bias_variance(0.5, 0.6) == "high_bias"
+        assert diag_mod.diagnose_bias_variance(0.05, 0.3) == "high_variance"
+        assert diag_mod.diagnose_bias_variance(0.05, 0.08) == "good_fit"
+
+    def test_gradient_check(self, submission_dir):
+        """gradient_check works on simple function"""
+        _add_submission_to_path(submission_dir)
+        autograd_mod = _load_module(submission_dir, "autograd")
+        tensor_mod = _load_module(submission_dir, "tensor")
+
+        def f(x):
+            return (x * x).sum()
+
+        x = np.array([1.0, 2.0, 3.0])
+        err = autograd_mod.gradient_check(f, x)
+        assert err < 1e-4, f"Gradient check error too large: {err}"
+
+
+# ===========================================================================
+# TestResult (2 tests)
+# ===========================================================================
 
 class TestResult:
-    @staticmethod
-    def _load_result():
-        path = os.path.join(_SUBMISSION_DIR, "output", "result_q3.json")
-        assert os.path.isfile(path), f"result_q3.json 없음: {path}"
+    """Validate result_q3.json structure and values."""
+
+    def _load_result(self, submission_dir):
+        path = os.path.join(submission_dir, "output", "result_q3.json")
+        assert os.path.isfile(path), "output/result_q3.json 파일 없음"
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def test_valid_images_only(self):
-        """유효 이미지만 분석 확인"""
-        result = self._load_result()
-        with open(_LABELS_PATH, "r", encoding="utf-8") as f:
-            labels = json.load(f)
-        valid = [
-            n for n in labels
-            if os.path.isfile(os.path.join(_IMAGES_DIR, f"{n}.png"))
+    def test_result_structure(self, submission_dir):
+        """result_q3.json has required keys and types"""
+        result = self._load_result(submission_dir)
+        required_keys = [
+            "xor_final_loss", "xor_predictions", "xor_accuracy",
+            "gradient_check_max_error", "gradient_check_passed",
+            "regression_final_loss", "regression_r_squared",
+            "init_comparison", "diagnostics", "learning_curve"
         ]
-        preds = result.get("predictions", {})
-        extra = set(preds.keys()) - set(valid)
-        assert not extra, f"존재하지 않는 이미지 포함: {extra}"
+        for k in required_keys:
+            assert k in result, f"Missing key: {k}"
 
-    def test_augmented_predictions(self):
-        """증강 카운팅 결과 포함 확인"""
-        result = self._load_result()
-        assert "predictions_augmented" in result, "predictions_augmented 없음"
-        aug = result["predictions_augmented"]
-        assert len(aug) > 0, "predictions_augmented가 비어 있음"
-        for name, count in aug.items():
-            assert isinstance(count, int), f"{name}: 정수가 아닙니다"
+        assert isinstance(result["xor_predictions"], list)
+        assert len(result["xor_predictions"]) == 4
+        assert isinstance(result["gradient_check_passed"], bool)
+        assert isinstance(result["init_comparison"], dict)
+        assert isinstance(result["diagnostics"], dict)
+        assert "diagnosis" in result["diagnostics"]
+        assert isinstance(result["learning_curve"], dict)
 
-    def test_method_comparison(self):
-        """방법 비교 결과 확인"""
-        result = self._load_result()
-        assert "method_comparison" in result, "method_comparison 없음"
-        comp = result["method_comparison"]
-        for cat in ("easy", "medium", "hard"):
-            assert cat in comp, f"{cat} 카테고리 없음"
-            for key in ("base_mae", "augmented_mae", "mae_improvement"):
-                assert key in comp[cat], f"{cat}.{key} 없음"
+    def test_result_values(self, submission_dir):
+        """result_q3.json values meet requirements"""
+        result = self._load_result(submission_dir)
+
+        assert result["xor_accuracy"] >= 0.75, \
+            f"XOR accuracy {result['xor_accuracy']} < 0.75"
+        assert result["gradient_check_passed"] is True, \
+            "Gradient check did not pass"
+        assert result["xor_final_loss"] < 0.5, \
+            f"XOR loss {result['xor_final_loss']} too high"
+        assert result["diagnostics"]["diagnosis"] in \
+            ["high_bias", "high_variance", "good_fit"], \
+            f"Invalid diagnosis: {result['diagnostics']['diagnosis']}"

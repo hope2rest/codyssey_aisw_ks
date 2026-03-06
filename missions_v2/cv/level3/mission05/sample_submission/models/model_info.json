@@ -1,16 +1,22 @@
 {
-  "xor_model": {
-    "type": "Sequential",
-    "layers": ["Linear(2,4,he)", "ReLU", "Linear(4,1,he)", "Sigmoid"],
-    "optimizer": "SGD",
-    "lr": 0.1,
-    "epochs": 1000
+  "logistic_regression": {
+    "type": "LogisticRegression",
+    "random_state": 42,
+    "max_iter": 1000,
+    "n_features": 8
   },
-  "regression_model": {
-    "type": "Sequential",
-    "layers": ["Linear(2,8,he)", "ReLU", "Linear(8,1,he)"],
-    "optimizer": "SGD",
-    "lr": 0.01,
-    "epochs": 500
+  "ridge_classifier": {
+    "type": "RidgeClassifier",
+    "random_state": 42,
+    "n_features": 8
+  },
+  "pca": {
+    "n_components": 0.95,
+    "n_components_selected": 8,
+    "total_variance_explained": 0.966
+  },
+  "kmeans": {
+    "n_clusters": 3,
+    "random_state": 42
   }
 }

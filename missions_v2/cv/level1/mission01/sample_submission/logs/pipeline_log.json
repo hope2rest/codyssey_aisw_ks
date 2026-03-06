@@ -1,0 +1,4 @@
+{
+  "steps": ["data_load", "preprocess", "feature_engineer", "train", "evaluate"],
+  "status": "completed"
+}

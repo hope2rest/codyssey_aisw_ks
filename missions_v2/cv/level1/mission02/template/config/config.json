@@ -1,0 +1,9 @@
+{
+  "data_dir": "../../data",
+  "output_dir": "../output",
+  "log_dir": "../logs",
+  "search_top_k": 3,
+  "recommend_top_k": 5,
+  "category_top_k": 3,
+  "target_book_index": 0
+}
