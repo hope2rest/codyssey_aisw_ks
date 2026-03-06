@@ -7,10 +7,12 @@ from counter import count_boxes, count_boxes_augmented, extract_bounding_boxes
 from metrics import compute_metrics, find_worst_case, compare_methods
 
 
-DATA_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGES_DIR = os.path.join(DATA_DIR, "data", "images")
-LABELS_FILE = os.path.join(DATA_DIR, "data", "labels.json")
-OUTPUT_FILE = os.path.join(DATA_DIR, "result_q3.json")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+MISSION_DIR = os.path.dirname(PROJECT_DIR)
+IMAGES_DIR = os.path.join(MISSION_DIR, "data", "images")
+LABELS_FILE = os.path.join(MISSION_DIR, "data", "labels.json")
+OUTPUT_FILE = os.path.join(PROJECT_DIR, "output", "result_q3.json")
 
 
 def main():

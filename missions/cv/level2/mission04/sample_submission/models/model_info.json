@@ -1,0 +1,22 @@
+{
+  "logistic_regression": {
+    "type": "LogisticRegression",
+    "random_state": 42,
+    "max_iter": 1000,
+    "n_features": 8
+  },
+  "ridge_classifier": {
+    "type": "RidgeClassifier",
+    "random_state": 42,
+    "n_features": 8
+  },
+  "pca": {
+    "n_components": 0.95,
+    "n_components_selected": 8,
+    "total_variance_explained": 0.966
+  },
+  "kmeans": {
+    "n_clusters": 3,
+    "random_state": 42
+  }
+}

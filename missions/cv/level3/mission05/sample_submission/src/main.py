@@ -19,9 +19,9 @@ def main():
 
     # 데이터 디렉토리 결정
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(os.path.dirname(script_dir), "data")
-    if not os.path.isdir(data_dir):
-        data_dir = os.path.join(script_dir, "..", "data")
+    project_dir = os.path.dirname(script_dir)
+    mission_dir = os.path.dirname(project_dir)
+    data_dir = os.path.join(mission_dir, "data")
 
     # ========== 1. XOR 문제 ==========
     xor_data = np.load(os.path.join(data_dir, "xor_data.npz"))
@@ -160,7 +160,7 @@ def main():
         }
     }
 
-    output_path = os.path.join(script_dir, "result_q5.json")
+    output_path = os.path.join(project_dir, "output", "result_q5.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 

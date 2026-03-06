@@ -22,12 +22,13 @@ import pytest
 # ---------------------------------------------------------------------------
 
 def _add_submission_to_path(submission_dir):
-    if submission_dir not in sys.path:
-        sys.path.insert(0, submission_dir)
+    src_dir = os.path.join(submission_dir, "src")
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
 
 
 def _load_module(submission_dir, module_name):
-    """Import a module from submission_dir."""
+    """Import a module from submission_dir/src."""
     _add_submission_to_path(submission_dir)
     if module_name in sys.modules:
         del sys.modules[module_name]
@@ -43,8 +44,8 @@ class TestStructure:
     """AST-based structure checks on submitted source files."""
 
     def _parse(self, submission_dir, filename):
-        path = os.path.join(submission_dir, filename)
-        assert os.path.isfile(path), f"File not found: {filename}"
+        path = os.path.join(submission_dir, "src", filename)
+        assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
         with open(path, "r", encoding="utf-8") as f:
             return ast.parse(f.read(), filename)
 
@@ -251,8 +252,8 @@ class TestResult:
     """Validate result_q5.json structure and values."""
 
     def _load_result(self, submission_dir):
-        path = os.path.join(submission_dir, "result_q5.json")
-        assert os.path.isfile(path), "result_q5.json not found"
+        path = os.path.join(submission_dir, "output", "result_q5.json")
+        assert os.path.isfile(path), "output/result_q5.json 파일 없음"
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 

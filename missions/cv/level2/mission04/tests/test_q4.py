@@ -27,16 +27,17 @@ def _configure(submission_dir):
 
 
 def _import_module(module_name):
-    if _SUBMISSION_DIR not in sys.path:
-        sys.path.insert(0, _SUBMISSION_DIR)
+    src_dir = os.path.join(_SUBMISSION_DIR, "src")
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
     if module_name in sys.modules:
         del sys.modules[module_name]
     return importlib.import_module(module_name)
 
 
 def _parse_ast(filename):
-    path = os.path.join(_SUBMISSION_DIR, filename)
-    assert os.path.isfile(path), f"{filename} 파일 없음: {path}"
+    path = os.path.join(_SUBMISSION_DIR, "src", filename)
+    assert os.path.isfile(path), f"src/{filename} 파일 없음: {path}"
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()
     return ast.parse(source, filename=path), source
@@ -266,7 +267,7 @@ class TestInterpreter:
 class TestResult:
     @staticmethod
     def _load_result():
-        path = os.path.join(_SUBMISSION_DIR, "result_q4.json")
+        path = os.path.join(_SUBMISSION_DIR, "output", "result_q4.json")
         assert os.path.isfile(path), f"result_q4.json 없음: {path}"
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)

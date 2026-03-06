@@ -1,0 +1,16 @@
+{
+  "xor_model": {
+    "type": "Sequential",
+    "layers": ["Linear(2,4,he)", "ReLU", "Linear(4,1,he)", "Sigmoid"],
+    "optimizer": "SGD",
+    "lr": 0.1,
+    "epochs": 1000
+  },
+  "regression_model": {
+    "type": "Sequential",
+    "layers": ["Linear(2,8,he)", "ReLU", "Linear(8,1,he)"],
+    "optimizer": "SGD",
+    "lr": 0.01,
+    "epochs": 500
+  }
+}

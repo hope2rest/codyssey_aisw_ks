@@ -106,7 +106,23 @@
 - `train_test_split`은 `test_size=0.3, random_state=42, stratify=y`
 - 모든 실수값은 `round(..., 4)`로 반올림
 
-### 제출 방식
+### 제출 폴더 구조
 
-- `preprocessor.py`, `model.py`, `interpreter.py`, `main.py`, `result_q4.json` 총 5개 파일을 zip으로 묶어 제출합니다.
+다음 폴더 구조를 zip으로 묶어 제출합니다.
+
+```
+submission/
+├── src/
+│   ├── preprocessor.py
+│   ├── model.py
+│   ├── interpreter.py
+│   └── main.py
+├── config/
+│   └── config.json
+├── models/
+│   └── model_info.json
+└── output/
+    └── result_q4.json
+```
+
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.

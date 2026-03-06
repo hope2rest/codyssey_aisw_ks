@@ -120,7 +120,27 @@ NumPy만으로 Tensor 기반 자동 미분(Autograd) 엔진을 구현하고, 신
 - `sigmoid` 입력은 `[-500, 500]`, `log` 입력은 `[1e-12, inf]`로 클리핑합니다.
 - `np.random.seed(42)`를 `main()` 시작 시 설정합니다.
 
-### 제출 방식
+### 제출 폴더 구조
 
-- `tensor.py`, `autograd.py`, `layers.py`, `trainer.py`, `diagnostics.py`, `main.py`, `result_q5.json` 총 7개 파일을 zip으로 묶어 제출합니다.
+다음 폴더 구조를 zip으로 묶어 제출합니다.
+
+```
+submission/
+├── src/
+│   ├── tensor.py
+│   ├── autograd.py
+│   ├── layers.py
+│   ├── trainer.py
+│   ├── diagnostics.py
+│   └── main.py
+├── config/
+│   └── config.json
+├── models/
+│   └── model_info.json
+├── logs/
+│   └── training_log.json
+└── output/
+    └── result_q5.json
+```
+
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.

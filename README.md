@@ -60,7 +60,6 @@ codyssey_aisw_0306/
         │   ├── mission01/              # CV Q1: 이커머스 데이터 전처리 + 이상치 탐지
         │   │   ├── problem.md
         │   │   ├── solution.md
-        │   │   ├── config.yaml
         │   │   ├── data/
         │   │   │   └── customers.csv
         │   │   ├── template/
@@ -74,7 +73,6 @@ codyssey_aisw_0306/
         │   └── mission02/              # CV Q2: TF-IDF 문서 검색 + 감성 분석
         │       ├── problem.md
         │       ├── solution.md
-        │       ├── config.yaml
         │       ├── data/
         │       │   ├── documents.txt
         │       │   ├── queries.txt
@@ -97,36 +95,31 @@ codyssey_aisw_0306/
         │   │   │   ├── labels.json
         │   │   │   └── images/         # easy/medium/hard 각 5장 (15장)
         │   │   ├── template/
-        │   │   │   ├── conv2d.py
-        │   │   │   ├── counter.py
-        │   │   │   ├── metrics.py
-        │   │   │   └── main.py
+        │   │   │   ├── src/            # conv2d.py, counter.py, metrics.py, main.py
+        │   │   │   ├── config/         # settings.json
+        │   │   │   └── output/         # .gitkeep
         │   │   ├── sample_submission/
-        │   │   │   ├── conv2d.py
-        │   │   │   ├── counter.py
-        │   │   │   ├── metrics.py
-        │   │   │   ├── main.py
-        │   │   │   └── result_q3.json
+        │   │   │   ├── src/            # conv2d.py, counter.py, metrics.py, main.py
+        │   │   │   ├── config/         # settings.json
+        │   │   │   └── output/         # result_q3.json
         │   │   └── tests/
         │   │       ├── conftest.py
         │   │       └── test_q3.py
         │   └── mission04/              # CV Q4: 금융 리스크 예측 + 모델 해석
         │       ├── problem.md
         │       ├── solution.md
-        │       ├── config.yaml
         │       ├── data/
         │       │   └── loan_data.csv
         │       ├── template/
-        │       │   ├── preprocessor.py
-        │       │   ├── model.py
-        │       │   ├── interpreter.py
-        │       │   └── main.py
+        │       │   ├── src/            # preprocessor.py, model.py, interpreter.py, main.py
+        │       │   ├── config/         # config.json
+        │       │   ├── models/         # model_info.json
+        │       │   └── output/         # .gitkeep
         │       ├── sample_submission/
-        │       │   ├── preprocessor.py
-        │       │   ├── model.py
-        │       │   ├── interpreter.py
-        │       │   ├── main.py
-        │       │   └── result_q4.json
+        │       │   ├── src/            # preprocessor.py, model.py, interpreter.py, main.py
+        │       │   ├── config/         # config.json
+        │       │   ├── models/         # model_info.json
+        │       │   └── output/         # result_q4.json
         │       └── tests/
         │           ├── conftest.py
         │           └── test_q4.py
@@ -134,26 +127,21 @@ codyssey_aisw_0306/
             └── mission05/              # CV Q5: 미니 딥러닝 프레임워크 + 성능 진단
                 ├── problem.md
                 ├── solution.md
-                ├── config.yaml
                 ├── data/
                 │   ├── xor_data.npz
-                │   ├── regression_data.npz
-                │   └── generate_data.py
+                │   └── regression_data.npz
                 ├── template/
-                │   ├── tensor.py
-                │   ├── autograd.py
-                │   ├── layers.py
-                │   ├── trainer.py
-                │   ├── diagnostics.py
-                │   └── main.py
+                │   ├── src/            # tensor.py, autograd.py, layers.py, trainer.py, diagnostics.py, main.py
+                │   ├── config/         # config.json
+                │   ├── models/         # model_info.json
+                │   ├── logs/           # training_log.json
+                │   └── output/         # .gitkeep
                 ├── sample_submission/
-                │   ├── tensor.py
-                │   ├── autograd.py
-                │   ├── layers.py
-                │   ├── trainer.py
-                │   ├── diagnostics.py
-                │   ├── main.py
-                │   └── result_q5.json
+                │   ├── src/            # tensor.py, autograd.py, layers.py, trainer.py, diagnostics.py, main.py
+                │   ├── config/         # config.json
+                │   ├── models/         # model_info.json
+                │   ├── logs/           # training_log.json
+                │   └── output/         # result_q5.json
                 └── tests/
                     ├── conftest.py
                     └── test_q5.py

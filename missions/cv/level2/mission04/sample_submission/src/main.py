@@ -11,8 +11,10 @@ from interpreter import get_feature_importance, get_pca_variance, cluster_featur
 def main():
     """전체 ML 파이프라인을 실행하고 result_q4.json을 저장합니다."""
     # 데이터 경로
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(base_dir, "data", "loan_data.csv")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(script_dir)
+    mission_dir = os.path.dirname(project_dir)
+    csv_path = os.path.join(mission_dir, "data", "loan_data.csv")
 
     # 1. 데이터 로드
     X, y = load_data(csv_path)
@@ -81,7 +83,7 @@ def main():
         },
     }
 
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result_q4.json")
+    output_path = os.path.join(project_dir, "output", "result_q4.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 

@@ -137,7 +137,21 @@
 - `THRESHOLD`와 `MIN_AREA` 값은 코드 내에서 명시적으로 변수로 정의
 - `counter.py`는 `conv2d.py`를, `main.py`는 `counter.py`와 `metrics.py`를 import하여 사용
 
-### 제출 방식
+### 제출 폴더 구조
 
-- `conv2d.py`, `counter.py`, `metrics.py`, `main.py`, `result_q3.json` 총 5개 파일을 zip으로 묶어 제출합니다.
+다음 폴더 구조를 zip으로 묶어 제출합니다.
+
+```
+submission/
+├── src/
+│   ├── conv2d.py
+│   ├── counter.py
+│   ├── metrics.py
+│   └── main.py
+├── config/
+│   └── settings.json
+└── output/
+    └── result_q3.json
+```
+
 - `template/` 디렉토리의 각 파일의 `# TODO` 부분을 채우세요.

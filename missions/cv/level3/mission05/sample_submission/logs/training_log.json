@@ -1,0 +1,16 @@
+{
+  "xor_training": {
+    "final_loss": null,
+    "accuracy": null,
+    "epochs": 1000
+  },
+  "regression_training": {
+    "final_loss": null,
+    "r_squared": null,
+    "epochs": 500
+  },
+  "gradient_check": {
+    "max_error": null,
+    "passed": null
+  }
+}
