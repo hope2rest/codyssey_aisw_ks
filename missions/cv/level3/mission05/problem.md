@@ -3,9 +3,9 @@
 ### 문제
 
 NumPy만으로 Tensor 기반 자동 미분(Autograd) 엔진을 구현하고, 신경망 레이어, 학습 루프, Bias/Variance 진단까지 포함하는 미니 딥러닝 프레임워크를 구축하세요.
-- 데이터는 `data/xor_data.npz` (XOR 4샘플)과 `data/regression_data.npz` (50샘플, y=2*x1+3*x2+noise)에 저장되어 있습니다.
-- Tensor 클래스에 역전파(reverse-mode autodiff)를 구현하고, Central Difference 기반 Gradient Check로 검증합니다.
-- 초기화 전략(zero/random/he) 비교와 Bias/Variance 진단을 수행합니다.
+데이터는 `data/xor_data.npz` (XOR 4샘플)과 `data/regression_data.npz` (50샘플, y=2*x1+3*x2+noise)에 저장되어 있습니다.
+Tensor 클래스에 역전파(reverse-mode autodiff)를 구현하고, Central Difference 기반 Gradient Check로 검증합니다.
+초기화 전략(zero/random/he) 비교와 Bias/Variance 진단을 수행합니다.
 
 ### 데이터 구조
 

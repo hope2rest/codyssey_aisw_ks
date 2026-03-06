@@ -3,9 +3,7 @@
 ### 문제
 
 대출 고객 데이터에 대해 ML 기반 리스크 예측 모델을 구축하고, PCA/K-Means/Feature Importance로 모델을 해석하는 파이프라인을 구현하세요.
-- 데이터는 `data/loan_data.csv`에 저장되어 있습니다 (200행, 11열, 헤더 포함).
-- StandardScaler로 스케일링, PCA로 차원 축소, LogisticRegression/Ridge로 예측, 모델 계수 기반 Feature Importance를 사용합니다.
-- K-Means 클러스터링으로 고객 세그먼트를 도출하고, PCA 분산 비율로 차원 축소 효과를 분석합니다.
+데이터는 `data/loan_data.csv`에 저장되어 있습니다 (200행, 11열, 헤더 포함).
 
 ### loan_data.csv 구조
 

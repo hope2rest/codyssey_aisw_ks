@@ -1,13 +1,13 @@
-"""Performance diagnostics for bias/variance analysis."""
+"""diagnostics.py - Bias/Variance 성능 진단"""
 import numpy as np
 from tensor import Tensor
 
 
 def compute_train_test_loss(model, X_train, y_train, X_test, y_test, loss_fn):
-    """Compute loss on train and test sets.
+    """학습/테스트 세트의 손실을 계산합니다.
 
     Returns:
-        (train_loss, test_loss) as floats
+        (train_loss, test_loss) float 튜플
     """
     x_tr = Tensor(X_train, requires_grad=False)
     y_tr = Tensor(y_train, requires_grad=False)
@@ -23,15 +23,15 @@ def compute_train_test_loss(model, X_train, y_train, X_test, y_test, loss_fn):
 
 
 def diagnose_bias_variance(train_loss, test_loss, threshold=0.1):
-    """Diagnose model performance.
+    """모델 성능을 진단합니다.
 
     Args:
-        train_loss: training loss
-        test_loss: test/validation loss
-        threshold: decision threshold
+        train_loss: 학습 손실
+        test_loss: 테스트/검증 손실
+        threshold: 판별 임계값
 
     Returns:
-        "high_bias", "high_variance", or "good_fit"
+        "high_bias", "high_variance", 또는 "good_fit"
     """
     if train_loss > threshold:
         return "high_bias"
@@ -43,19 +43,19 @@ def diagnose_bias_variance(train_loss, test_loss, threshold=0.1):
 
 def learning_curve(model_fn, X, y, loss_fn, optimizer_fn, epochs,
                    train_sizes=None):
-    """Compute learning curve at different training set sizes.
+    """다양한 학습 데이터 크기에서 학습 곡선을 계산합니다.
 
     Args:
-        model_fn: callable that returns a fresh model
-        X: full training features (numpy array)
-        y: full training targets (numpy array)
-        loss_fn: loss function
-        optimizer_fn: callable that takes model parameters and returns optimizer
-        epochs: number of training epochs
-        train_sizes: list of fractions (default [0.2, 0.4, 0.6, 0.8, 1.0])
+        model_fn: 새 모델을 반환하는 호출 가능 객체
+        X: 전체 학습 특성 (numpy 배열)
+        y: 전체 학습 목표값 (numpy 배열)
+        loss_fn: 손실 함수
+        optimizer_fn: 모델 파라미터를 받아 옵티마이저를 반환하는 호출 가능 객체
+        epochs: 학습 에폭 수
+        train_sizes: 비율 리스트 (기본값 [0.2, 0.4, 0.6, 0.8, 1.0])
 
     Returns:
-        dict with keys: train_sizes, train_losses, val_losses
+        dict: {"train_sizes", "train_losses", "val_losses"}
     """
     if train_sizes is None:
         train_sizes = [0.2, 0.4, 0.6, 0.8, 1.0]

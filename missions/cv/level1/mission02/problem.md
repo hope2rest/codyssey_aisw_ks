@@ -3,9 +3,8 @@
 ### 문제
 
 20개의 한국어 기술 문서에 대해 TF-IDF 기반 문서 검색을 구현하고, 30개의 고객 리뷰에 대해 규칙 기반 감성 분석을 수행하는 프로그램을 구현하세요.
-- 문서 데이터는 `data/documents.txt`, 불용어는 `data/stopwords.txt`, 검색 쿼리는 `data/queries.txt`에 저장되어 있습니다.
-- 리뷰 데이터는 `data/reviews.txt`(탭 구분, 텍스트\t레이블), 감성 사전은 `data/sentiment_dict.json`에 저장되어 있습니다.
-- TF-IDF는 단어의 문서 내 빈도(TF)와 전체 문서 집합에서의 희소성(IDF)을 결합하여 단어의 중요도를 수치화하는 기법이며, 코사인 유사도는 두 벡터 간의 방향 유사성을 측정합니다.
+문서 데이터는 `data/documents.txt`, 불용어는 `data/stopwords.txt`, 검색 쿼리는 `data/queries.txt`에 저장되어 있습니다.
+리뷰 데이터는 `data/reviews.txt`(탭 구분, 텍스트\t레이블), 감성 사전은 `data/sentiment_dict.json`에 저장되어 있습니다.
 
 ### 입력 파일 구조
 

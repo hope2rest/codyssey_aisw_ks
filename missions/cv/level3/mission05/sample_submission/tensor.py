@@ -1,12 +1,12 @@
-"""Tensor class with automatic differentiation support."""
+"""tensor.py - 자동 미분을 지원하는 Tensor 클래스"""
 import numpy as np
 
 
 class Tensor:
-    """A simple tensor with autograd support."""
+    """자동 미분(Autograd)을 지원하는 간단한 Tensor 클래스."""
 
     def __init__(self, data, requires_grad=False, _children=()):
-        # Handle Tensor-like objects (duck typing for cross-module compatibility)
+        # Tensor 유사 객체 처리 (모듈 간 호환을 위한 덕 타이핑)
         if hasattr(data, 'data') and isinstance(getattr(data, 'data'), np.ndarray):
             data = data.data
         if isinstance(data, (int, float)):
@@ -36,9 +36,9 @@ class Tensor:
         def _backward():
             if self.requires_grad:
                 g = out.grad
-                # Handle broadcasting
+                # 브로드캐스팅 처리
                 if self.data.shape != out.data.shape:
-                    # Sum over broadcasted dimensions
+                    # 브로드캐스트된 차원에 대해 합산
                     ndim_diff = len(out.data.shape) - len(self.data.shape)
                     axes = list(range(ndim_diff))
                     for i, (s, o) in enumerate(zip(self.data.shape, out.data.shape[ndim_diff:])):
@@ -197,7 +197,7 @@ class Tensor:
         return out
 
     def backward(self):
-        """Reverse-mode automatic differentiation via topological sort."""
+        """위상 정렬을 이용한 역전파(Reverse-mode autodiff)."""
         topo = []
         visited = set()
 

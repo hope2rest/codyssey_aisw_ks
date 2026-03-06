@@ -1,10 +1,10 @@
-"""Main pipeline for mini deep learning framework exam."""
+"""main.py - 미니 딥러닝 프레임워크 전체 파이프라인"""
 import sys
 import os
 import json
 import numpy as np
 
-# Ensure current directory is on path
+# 현재 디렉토리를 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from tensor import Tensor
@@ -17,18 +17,18 @@ from diagnostics import compute_train_test_loss, diagnose_bias_variance, learnin
 def main():
     np.random.seed(42)
 
-    # Determine data directory
+    # 데이터 디렉토리 결정
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(os.path.dirname(script_dir), "data")
     if not os.path.isdir(data_dir):
         data_dir = os.path.join(script_dir, "..", "data")
 
-    # ========== 1. XOR Problem ==========
+    # ========== 1. XOR 문제 ==========
     xor_data = np.load(os.path.join(data_dir, "xor_data.npz"))
     X_xor = xor_data["X"].astype(np.float64)
     y_xor = xor_data["y"].astype(np.float64)
 
-    # Build model
+    # 모델 구축
     np.random.seed(42)
     l1 = Linear(2, 4, init='he')
     l2 = Linear(4, 1, init='he')
@@ -38,16 +38,16 @@ def main():
     xor_losses = train(model_xor, X_xor, y_xor, binary_cross_entropy, optimizer_xor, epochs=1000)
     xor_final_loss = xor_losses[-1]
 
-    # Predictions
+    # 예측
     x_t = Tensor(X_xor)
     xor_preds = model_xor.forward(x_t)
     xor_predictions = xor_preds.data.tolist()
 
-    # Accuracy
+    # 정확도
     preds_rounded = np.round(xor_preds.data)
     xor_accuracy = float(np.mean(preds_rounded == y_xor))
 
-    # ========== 2. Gradient Check ==========
+    # ========== 2. 그래디언트 검증 ==========
     np.random.seed(42)
 
     def simple_fn(x):
@@ -58,7 +58,7 @@ def main():
     max_error = gradient_check(simple_fn, x_check)
     gradient_check_passed = max_error < 1e-4
 
-    # ========== 3. Regression Problem ==========
+    # ========== 3. 회귀 문제 ==========
     reg_data = np.load(os.path.join(data_dir, "regression_data.npz"))
     X_reg = reg_data["X"].astype(np.float64)
     y_reg = reg_data["y"].astype(np.float64)
@@ -73,14 +73,14 @@ def main():
     reg_losses = train(reg_model, X_reg, y_reg, mse_loss, optimizer_reg, epochs=500)
     regression_final_loss = reg_losses[-1]
 
-    # R-squared
+    # R-squared (결정 계수)
     x_reg_t = Tensor(X_reg)
     reg_preds = reg_model.forward(x_reg_t).data
     ss_res = np.sum((y_reg - reg_preds) ** 2)
     ss_tot = np.sum((y_reg - np.mean(y_reg)) ** 2)
     r_squared = float(1 - ss_res / ss_tot)
 
-    # ========== 4. Init Comparison ==========
+    # ========== 4. 초기화 전략 비교 ==========
     init_results = {}
     for init_type in ['zero', 'random', 'he']:
         np.random.seed(42)
@@ -94,8 +94,8 @@ def main():
         losses = train(m, X_xor, y_xor, binary_cross_entropy, opt, epochs=1000)
         init_results[f"{init_type}_final_loss"] = losses[-1]
 
-    # ========== 5. Diagnostics ==========
-    # Split regression data
+    # ========== 5. 성능 진단 ==========
+    # 회귀 데이터 분할
     n = len(X_reg)
     split = int(n * 0.8)
     X_train_diag = X_reg[:split]
@@ -117,7 +117,7 @@ def main():
     )
     diagnosis = diagnose_bias_variance(diag_train_loss, diag_test_loss)
 
-    # ========== 6. Learning Curve ==========
+    # ========== 6. 학습 곡선 ==========
     def model_factory():
         np.random.seed(42)
         return Sequential(
@@ -132,9 +132,9 @@ def main():
     lc = learning_curve(model_factory, X_reg, y_reg, mse_loss, optimizer_factory,
                         epochs=200, train_sizes=[0.2, 0.4, 0.6, 0.8, 1.0])
 
-    # ========== Build result ==========
+    # ========== 결과 생성 ==========
     def r6(val):
-        """Round to 6 decimal places."""
+        """소수점 6자리로 반올림."""
         if isinstance(val, list):
             return [r6(v) for v in val]
         return round(float(val), 6)
