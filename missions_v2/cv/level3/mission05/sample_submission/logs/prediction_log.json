@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-01-15T10:30:00",
+  "pipeline": "risk_prediction",
+  "steps": [
+    {"step": "load_data", "status": "success", "rows": 200},
+    {"step": "handle_missing", "status": "success", "filled": 25},
+    {"step": "scale_features", "status": "success"},
+    {"step": "split_data", "status": "success", "train": 140, "test": 60},
+    {"step": "train_logistic", "status": "success"},
+    {"step": "train_ridge", "status": "success"},
+    {"step": "evaluate", "status": "success"},
+    {"step": "predict_new_customers", "status": "success", "customers": 20}
+  ]
+}
