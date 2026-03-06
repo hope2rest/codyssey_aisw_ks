@@ -4,172 +4,173 @@ AI/SW 심화 시험 — pytest 기반 자동 채점 멀티 모듈 프로젝트
 
 ## 문제 개요
 
-### Q1. 이미지 기반 객체 카운팅 (CV)
+### CS (컴퓨터 사이언스)
 
-제공되는 이미지(easy/medium/hard 각 5장)에서 규칙 기반 파이프라인으로 박스 개수를 카운팅하고, 데이터 증강 앙상블로 정확도를 개선한 뒤, 객체 검출 결과를 일주일 단위로 관리하는 일지 시스템을 구축하는 문제입니다.
+| 문항 | 난이도 | 제목 | 설명 |
+|------|--------|------|------|
+| Q1 | Level 1 | MAC 연산 기반 패턴 매칭 | 3×3 패턴과 필터를 읽어 MAC 연산으로 최적 매칭을 찾고, 라벨 정규화·epsilon 비교·시간 복잡도 분석·실패 진단까지 수행 |
+| Q2 | Level 2 | 2D 컨볼루션 기반 특징 추출 | 5×5 이미지와 3×3 커널로 2D 컨볼루션 특징맵을 추출하고, ReLU 활성화·통계 분석·최강 특징 커널 탐색 수행 |
 
-학생은 4개의 Python 모듈과 결과 JSON 파일, 총 5개 파일을 제출합니다.
+### CV (컴퓨터 비전)
 
-### Q1. MAC 연산 기반 패턴 매칭 (CS - Level 1, 20분)
-
-JSON 데이터에서 3×3 패턴과 필터를 읽어 MAC 연산으로 최적 매칭을 찾고, 라벨 정규화·epsilon 비교·시간 복잡도 분석·실패 진단까지 수행하는 문제입니다.
-
-학생은 `mac_scorer.py` 1개 파일을 제출합니다.
-
-### Q2. 2D 컨볼루션 기반 특징 추출 (CS - Level 2, 40분)
-
-5×5 이미지와 3×3 커널을 읽어 2D 컨볼루션으로 특징맵을 추출하고, ReLU 활성화·통계 분석·최강 특징 커널 탐색까지 수행하는 문제입니다.
-
-학생은 `conv2d_analyzer.py` 1개 파일을 제출합니다.
+| 문항 | 난이도 | 제목 | 설명 |
+|------|--------|------|------|
+| Q1 | Level 1 | 이커머스 데이터 전처리 및 이상치 탐지 | 고객 데이터를 전처리하고, IQR/Z-score 기반 이상치 탐지 및 고객 세그먼트 분류 |
+| Q2 | Level 1 | TF-IDF 문서 검색 + 규칙 기반 감성 분석 | TF-IDF 기반 문서 검색과 부정어/강조어 처리 포함 규칙 기반 감성 분석 |
+| Q3 | Level 2 | 이미지 기반 객체 카운팅 | 2D 컨볼루션 엣지 검출, 데이터 증강 앙상블, 바운딩 박스 추출 및 성능 비교 |
+| Q4 | Level 2 | 금융 리스크 예측 + 모델 해석 | ML 기반 리스크 예측 모델 구축, PCA/K-Means/Feature Importance 해석 |
+| Q5 | Level 3 | 미니 딥러닝 프레임워크 + 성능 진단 | NumPy 기반 Tensor 자동 미분 엔진, 신경망 레이어, Bias/Variance 진단 |
 
 ## 디렉토리 구조
 
 ```
 codyssey_aisw_0306/
-├── conftest.py                     # 루트: --submission-dir CLI 옵션 등록
-├── pyproject.toml                  # pytest 설정
-├── requirements.txt                # pytest>=7.0
+├── conftest.py                         # 루트: --submission-dir CLI 옵션 등록
+├── pyproject.toml                      # pytest 설정
+├── requirements.txt
+├── README.md
 └── missions/
-    ├── cv/level2/mission01/        # Q1 이미지 객체 카운팅
-    │   ├── problem.md              # 문제지 (학생 배포용)
-    │   ├── solution.md             # 정답지 (출제자 보관용)
-    │   ├── data/
-    │   │   ├── labels.json         # 이미지별 정답 박스 개수
-    │   │   └── images/             # easy/medium/hard 각 5장 (15장)
-    │   ├── template/               # 학생 배포용 스켈레톤 코드
-    │   │   ├── conv2d.py
-    │   │   ├── counter.py
-    │   │   ├── metrics.py
-    │   │   └── main.py
-    │   ├── sample_submission/      # 정답 예시 코드
-    │   │   ├── conv2d.py
-    │   │   ├── counter.py
-    │   │   ├── metrics.py
-    │   │   ├── main.py
-    │   │   └── result_q1.json
-    │   └── tests/
-    │       ├── conftest.py         # submission_dir fixture
-    │       └── test_q1_cv.py       # 22개 테스트
-    ├── cs/level1/mission01/        # Q1 MAC 스코어러 (20분)
-    │   ├── problem.md
-    │   ├── solution.md
-    │   ├── data/
-    │   │   └── data.json
-    │   ├── template/
-    │   │   └── mac_scorer.py
-    │   ├── sample_submission/
-    │   │   └── mac_scorer.py
-    │   └── tests/
-    │       ├── conftest.py
-    │       └── test_mac_scorer.py  # 11개 테스트
-    └── cs/level2/mission02/        # Q2 2D 컨볼루션 특징 추출 (40분)
-        ├── problem.md
-        ├── solution.md
-        ├── data/
-        │   └── data.json
-        ├── template/
-        │   └── conv2d_analyzer.py
-        ├── sample_submission/
-        │   └── conv2d_analyzer.py
-        └── tests/
-            ├── conftest.py
-            └── test_conv2d_analyzer.py # 12개 테스트
+    ├── cs/
+    │   ├── level1/mission01/           # CS Q1: MAC 연산 기반 패턴 매칭
+    │   │   ├── problem.md
+    │   │   ├── solution.md
+    │   │   ├── data/
+    │   │   │   └── data.json
+    │   │   ├── template/
+    │   │   │   └── mac_scorer.py
+    │   │   ├── sample_submission/
+    │   │   │   └── mac_scorer.py
+    │   │   └── tests/
+    │   │       ├── conftest.py
+    │   │       └── test_mac_scorer.py
+    │   └── level2/mission02/           # CS Q2: 2D 컨볼루션 기반 특징 추출
+    │       ├── problem.md
+    │       ├── solution.md
+    │       ├── data/
+    │       │   └── data.json
+    │       ├── template/
+    │       │   └── conv2d_analyzer.py
+    │       ├── sample_submission/
+    │       │   └── conv2d_analyzer.py
+    │       └── tests/
+    │           ├── conftest.py
+    │           └── test_conv2d_analyzer.py
+    └── cv/
+        ├── level1/
+        │   ├── mission01/              # CV Q1: 이커머스 데이터 전처리 + 이상치 탐지
+        │   │   ├── problem.md
+        │   │   ├── solution.md
+        │   │   ├── config.yaml
+        │   │   ├── data/
+        │   │   │   └── customers.csv
+        │   │   ├── template/
+        │   │   │   └── q1_solution.py
+        │   │   ├── sample_submission/
+        │   │   │   ├── q1_solution.py
+        │   │   │   └── result_q1.json
+        │   │   └── tests/
+        │   │       ├── conftest.py
+        │   │       └── test_q1.py
+        │   └── mission02/              # CV Q2: TF-IDF 문서 검색 + 감성 분석
+        │       ├── problem.md
+        │       ├── solution.md
+        │       ├── config.yaml
+        │       ├── data/
+        │       │   ├── documents.txt
+        │       │   ├── queries.txt
+        │       │   ├── reviews.txt
+        │       │   ├── sentiment_dict.json
+        │       │   └── stopwords.txt
+        │       ├── template/
+        │       │   └── q2_solution.py
+        │       ├── sample_submission/
+        │       │   ├── q2_solution.py
+        │       │   └── result_q2.json
+        │       └── tests/
+        │           ├── conftest.py
+        │           └── test_q2.py
+        ├── level2/
+        │   ├── mission03/              # CV Q3: 이미지 기반 객체 카운팅
+        │   │   ├── problem.md
+        │   │   ├── solution.md
+        │   │   ├── data/
+        │   │   │   ├── labels.json
+        │   │   │   └── images/         # easy/medium/hard 각 5장 (15장)
+        │   │   ├── template/
+        │   │   │   ├── conv2d.py
+        │   │   │   ├── counter.py
+        │   │   │   ├── metrics.py
+        │   │   │   └── main.py
+        │   │   ├── sample_submission/
+        │   │   │   ├── conv2d.py
+        │   │   │   ├── counter.py
+        │   │   │   ├── metrics.py
+        │   │   │   ├── main.py
+        │   │   │   └── result_q3.json
+        │   │   └── tests/
+        │   │       ├── conftest.py
+        │   │       └── test_q3.py
+        │   └── mission04/              # CV Q4: 금융 리스크 예측 + 모델 해석
+        │       ├── problem.md
+        │       ├── solution.md
+        │       ├── config.yaml
+        │       ├── data/
+        │       │   └── loan_data.csv
+        │       ├── template/
+        │       │   ├── preprocessor.py
+        │       │   ├── model.py
+        │       │   ├── interpreter.py
+        │       │   └── main.py
+        │       ├── sample_submission/
+        │       │   ├── preprocessor.py
+        │       │   ├── model.py
+        │       │   ├── interpreter.py
+        │       │   ├── main.py
+        │       │   └── result_q4.json
+        │       └── tests/
+        │           ├── conftest.py
+        │           └── test_q4.py
+        └── level3/
+            └── mission05/              # CV Q5: 미니 딥러닝 프레임워크 + 성능 진단
+                ├── problem.md
+                ├── solution.md
+                ├── config.yaml
+                ├── data/
+                │   ├── xor_data.npz
+                │   ├── regression_data.npz
+                │   └── generate_data.py
+                ├── template/
+                │   ├── tensor.py
+                │   ├── autograd.py
+                │   ├── layers.py
+                │   ├── trainer.py
+                │   ├── diagnostics.py
+                │   └── main.py
+                ├── sample_submission/
+                │   ├── tensor.py
+                │   ├── autograd.py
+                │   ├── layers.py
+                │   ├── trainer.py
+                │   ├── diagnostics.py
+                │   ├── main.py
+                │   └── result_q5.json
+                └── tests/
+                    ├── conftest.py
+                    └── test_q5.py
 ```
-
-## 제출 파일 설명
-
-### CV — 이미지 기반 객체 카운팅
-
-| 파일 | 역할 |
-|------|------|
-| `conv2d.py` | NumPy 2D 컨볼루션, 그레이스케일 변환, Sobel 엣지 검출, 이미지 증강(좌우/상하 반전, 밝기 조절, 정규화) |
-| `counter.py` | 기본 박스 카운팅, 증강 앙상블 카운팅, 바운딩 박스 좌표 추출 |
-| `metrics.py` | MAE/Accuracy 계산, worst case 탐색, 기본 vs 증강 비교, 일자별 검출 로그, 주간 보고서, 한계 분석 |
-| `main.py` | 전체 파이프라인 실행 (카운팅 → 증강 → 비교 → 주간 일지 → JSON 저장) |
-| `result_q1.json` | 예측, 증강 예측, 바운딩 박스, 메트릭, 방법 비교, 주간 보고서, 한계 분석 |
-
-### CS — MAC 연산 + 2D 컨볼루션
-
-| 파일 | 역할 |
-|------|------|
-| `mac_scorer.py` | MAC 연산 기반 패턴 매칭, 라벨 정규화, epsilon 비교, 시간 복잡도 분석, 실패 진단 (Level 1) |
-| `conv2d_analyzer.py` | 2D 컨볼루션 기반 특징 추출, 제로 패딩, ReLU 활성화, 통계 분석, 최강 특징 탐색 (Level 2) |
-
-## 테스트 구성
-
-### CV (22개)
-
-| 분류 | 테스트 | 내용 |
-|------|--------|------|
-| 구조 검증 | `test_conv2d_functions` | conv2d.py 필수 함수 7개 정의 (AST) |
-| 구조 검증 | `test_no_filter2d` | cv2.filter2D 미사용 확인 |
-| 구조 검증 | `test_counter_functions` | counter.py 필수 함수 4개 + THRESHOLD/MIN_AREA |
-| 구조 검증 | `test_metrics_functions` | metrics.py 필수 함수 7개 정의 (AST) |
-| 기능 검증 | `test_conv2d_identity` | identity 커널 conv2d 결과 |
-| 기능 검증 | `test_conv2d_sobel` | Sobel 커널 적용 결과 |
-| 기능 검증 | `test_grayscale` | 그레이스케일 변환 정확도 |
-| 기능 검증 | `test_flip_operations` | 좌우/상하 반전 검증 |
-| 기능 검증 | `test_brightness_and_normalize` | 밝기 조절 및 Min-Max 정규화 |
-| 기능 검증 | `test_ensemble_count` | 중앙값 기반 앙상블 카운팅 |
-| 기능 검증 | `test_count_boxes_augmented` | 증강 앙상블 카운팅 정수 반환 |
-| 기능 검증 | `test_bounding_boxes_format` | 바운딩 박스 출력 형식 |
-| 기능 검증 | `test_compute_metrics` | MAE/Accuracy 계산 정확도 |
-| 기능 검증 | `test_find_worst_case` | worst case 이미지 탐색 |
-| 기능 검증 | `test_compare_methods` | 기본 vs 증강 성능 비교 |
-| 기능 검증 | `test_detection_log_and_weekly_report` | 검출 로그 및 주간 보고서 |
-| 결과 검증 | `test_valid_images_only` | 유효 이미지만 분석 (test_01 제외) |
-| 결과 검증 | `test_augmented_predictions` | 증강 카운팅 결과 포함 |
-| 결과 검증 | `test_method_comparison` | 방법 비교 결과 포함 |
-| 결과 검증 | `test_weekly_report` | 주간 보고서 결과 포함 |
-| 결과 검증 | `test_failure_reasons` | 실패 원인 3개 이상, 한국어, 20자+ |
-| 결과 검증 | `test_why_learning_based` | 학습 기반 필요성 30~200자, 한국어 |
-
-### CS - Level 1: MAC 스코어러 (11개)
-
-| 분류 | 테스트 | 내용 |
-|------|--------|------|
-| 구조 검증 | `test_functions_exist` | 필수 함수 9개 정의 확인 |
-| 구조 검증 | `test_no_external_lib` | json, time 외 외부 라이브러리 미사용 |
-| 기능 검증 | `test_mac_basic` | 정수 MAC 연산 |
-| 기능 검증 | `test_mac_floats` | 부동소수점 MAC 연산 |
-| 기능 검증 | `test_find_best_match` | 최적 필터 매칭 |
-| 기능 검증 | `test_normalize_labels` | 라벨 키 소문자 정규화 |
-| 기능 검증 | `test_is_close` | epsilon 기반 비교 |
-| 기능 검증 | `test_measure_mac_time` | MAC 연산 시간 측정 |
-| 기능 검증 | `test_analyze_complexity` | 시간 복잡도 분석 구조 |
-| 기능 검증 | `test_diagnose_failure` | 실패 원인 3가지 분류 |
-| 결과 검증 | `test_main_result` | 전체 파이프라인 결과 |
-
-### CS - Level 2: 2D 컨볼루션 특징 추출 (12개)
-
-| 분류 | 테스트 | 내용 |
-|------|--------|------|
-| 구조 검증 | `test_functions_exist` | 필수 함수 9개 정의 확인 |
-| 구조 검증 | `test_no_external_lib` | json 외 외부 라이브러리 미사용 |
-| 기능 검증 | `test_pad_matrix` | 제로 패딩 적용 |
-| 기능 검증 | `test_conv2d_basic` | 기본 컨볼루션 연산 |
-| 기능 검증 | `test_conv2d_output_size` | 컨볼루션 출력 크기 |
-| 기능 검증 | `test_relu` | ReLU 활성화 |
-| 기능 검증 | `test_flatten` | Flatten 변환 |
-| 기능 검증 | `test_compute_stats` | 통계 계산 (min/max/mean) |
-| 기능 검증 | `test_extract_features` | 다중 커널 특징 추출 |
-| 기능 검증 | `test_find_strongest_feature` | 최강 특징 커널 탐색 |
-| 결과 검증 | `test_main_feature_sums` | 전체 파이프라인 특징맵 합계 |
-| 결과 검증 | `test_main_strongest` | 전체 파이프라인 최강 특징 |
 
 ## 실행 방법
 
 ```bash
-# 정답 코드로 검증 (기본값: sample_submission)
-pytest missions/cv/level2/mission01/tests/ -v
+# 정답 코드로 검증 (sample_submission 기본 사용)
 pytest missions/cs/level1/mission01/tests/ -v
 pytest missions/cs/level2/mission02/tests/ -v
+pytest missions/cv/level1/mission01/tests/ -v
+pytest missions/cv/level1/mission02/tests/ -v
+pytest missions/cv/level2/mission03/tests/ -v
+pytest missions/cv/level2/mission04/tests/ -v
+pytest missions/cv/level3/mission05/tests/ -v
 
 # 학생 제출물 채점
-pytest missions/cv/level2/mission01/tests/ --submission-dir /path/to/submission -v
-pytest missions/cs/level1/mission01/tests/ --submission-dir /path/to/submission -v
-pytest missions/cs/level2/mission02/tests/ --submission-dir /path/to/submission -v
-
-# zip 파일로 제출 시
-pytest missions/cv/level2/mission01/tests/ --submission-dir /path/to/submission.zip -v
+pytest missions/cv/level1/mission01/tests/ --submission-dir /path/to/submission -v
 ```
