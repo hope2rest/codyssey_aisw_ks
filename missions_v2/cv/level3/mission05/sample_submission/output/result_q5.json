@@ -1,0 +1,55 @@
+{
+  "xor_final_loss": 0.047196,
+  "xor_predictions": [
+    [
+      0.051127
+    ],
+    [
+      0.938304
+    ],
+    [
+      0.971821
+    ],
+    [
+      0.042004
+    ]
+  ],
+  "xor_accuracy": 1.0,
+  "gradient_check_max_error": 0.0,
+  "gradient_check_passed": true,
+  "regression_final_loss": 0.06757,
+  "regression_r_squared": 0.994187,
+  "init_comparison": {
+    "zero_final_loss": 0.693147,
+    "random_final_loss": 0.48276,
+    "he_final_loss": 0.047196
+  },
+  "diagnostics": {
+    "train_loss": 0.055402,
+    "test_loss": 0.085224,
+    "diagnosis": "good_fit"
+  },
+  "learning_curve": {
+    "train_sizes": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "train_losses": [
+      0.122435,
+      0.15894,
+      0.173573,
+      0.206502,
+      0.112628
+    ],
+    "val_losses": [
+      0.25953,
+      0.104253,
+      0.126186,
+      0.15663,
+      0.214715
+    ]
+  }
+}

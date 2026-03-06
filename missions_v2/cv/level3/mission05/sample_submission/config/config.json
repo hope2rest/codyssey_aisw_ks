@@ -1,0 +1,9 @@
+{
+  "random_seed": 42,
+  "xor_epochs": 1000,
+  "xor_lr": 0.1,
+  "regression_epochs": 500,
+  "regression_lr": 0.01,
+  "train_test_split": 0.8,
+  "learning_curve_sizes": [0.2, 0.4, 0.6, 0.8, 1.0]
+}

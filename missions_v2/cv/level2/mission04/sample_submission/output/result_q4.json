@@ -1,0 +1,108 @@
+{
+  "preprocessing": {
+    "original_shape": [
+      200,
+      9
+    ],
+    "missing_values_before": 10,
+    "missing_values_after": 0,
+    "scaled_mean_abs_max": 0.0
+  },
+  "model_logistic": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
+  },
+  "model_ridge": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_macro": 1.0
+  },
+  "pca": {
+    "n_components_selected": 8,
+    "total_variance_explained": 0.966,
+    "variance_ratios": [
+      {
+        "component": 1,
+        "variance_ratio": 0.3858
+      },
+      {
+        "component": 2,
+        "variance_ratio": 0.1176
+      },
+      {
+        "component": 3,
+        "variance_ratio": 0.1148
+      },
+      {
+        "component": 4,
+        "variance_ratio": 0.0939
+      },
+      {
+        "component": 5,
+        "variance_ratio": 0.0897
+      },
+      {
+        "component": 6,
+        "variance_ratio": 0.069
+      },
+      {
+        "component": 7,
+        "variance_ratio": 0.0499
+      },
+      {
+        "component": 8,
+        "variance_ratio": 0.0453
+      }
+    ]
+  },
+  "feature_importance": [
+    {
+      "feature": "credit_score",
+      "importance": 1.1747
+    },
+    {
+      "feature": "interest_rate",
+      "importance": 1.055
+    },
+    {
+      "feature": "payment_history_score",
+      "importance": 0.9616
+    },
+    {
+      "feature": "debt_ratio",
+      "importance": 0.7786
+    },
+    {
+      "feature": "num_credit_lines",
+      "importance": 0.644
+    },
+    {
+      "feature": "employment_years",
+      "importance": 0.5977
+    },
+    {
+      "feature": "annual_income",
+      "importance": 0.5422
+    },
+    {
+      "feature": "loan_amount",
+      "importance": 0.221
+    },
+    {
+      "feature": "age",
+      "importance": 0.1968
+    }
+  ],
+  "clustering": {
+    "n_clusters": 3,
+    "cluster_counts": {
+      "0": 101,
+      "1": 30,
+      "2": 69
+    },
+    "inertia": 1080.0878
+  }
+}
